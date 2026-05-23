@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>hemocheck API</title>
+  <title>hemocheck API · Documentação</title>
+  <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://rsms.me/" />
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
   <link rel="stylesheet" href="../../assets/cofounder.css" />
 </head>
-
 <body>
 
 <header class="cf-topbar">
@@ -26,18 +24,22 @@
     <a href="../../docs-csat/docs.html">CSAT</a>
   </nav>
   <div class="cf-spacer"></div>
-  <input id="cfSearch" class="cf-search" type="search" placeholder="Buscar app…" />
-  <button class="cf-icon" id="cfThemeToggle" aria-label="Alternar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>
+  <input id="cfSearch" class="cf-search" type="search" placeholder="Buscar…" />
+  <button class="cf-icon" id="cfThemeToggle" aria-label="Alternar tema"></button>
 </header>
 
 <div class="cf-backdrop"></div>
 
 <div class="cf-layout">
 <aside class="cf-sidebar">
-    <div class="cf-group">Geral</div>
-    <a class="cf-nav-item" href="../index.html">Visão geral<span class="cf-tag">hub</span></a>
-    <a class="cf-nav-item" href="../API.md">API.md<span class="cf-tag">md</span></a>
-    <a class="cf-nav-item" href="../global.html">Spec global<span class="cf-tag">redoc</span></a>
+    <div class="cf-group">Esta API</div>
+    <a class="cf-nav-item" href="#tag-Auth%20(REST)">Auth (REST)<span class="cf-tag">1</span></a>
+    <a class="cf-nav-item" href="#tag-Webhooks">Webhooks<span class="cf-tag">2</span></a>
+    <a class="cf-nav-item" href="#tag-tRPC%20-%20system">tRPC - system<span class="cf-tag">2</span></a>
+    <a class="cf-nav-item" href="#tag-tRPC%20-%20auth">tRPC - auth<span class="cf-tag">4</span></a>
+    <a class="cf-nav-item" href="#tag-tRPC%20-%20analysis">tRPC - analysis<span class="cf-tag">6</span></a>
+    <a class="cf-nav-item" href="#schemas">Schemas<span class="cf-tag">15</span></a>
+    <a class="cf-nav-item" href="#security">Autenticação<span class="cf-tag">1</span></a>
 
     <div class="cf-group">Análise clínica</div>
     <a class="cf-nav-item" href="../cardiocheck/">cardiocheck<span class="cf-tag">3002</span></a>
@@ -52,55 +54,2583 @@
     <div class="cf-group">Hábito e planejamento</div>
     <a class="cf-nav-item" href="../aquaflow/">aquaflow<span class="cf-tag">3001</span></a>
     <a class="cf-nav-item" href="../listaCompras/">listaCompras<span class="cf-tag">—</span></a>
+
+    <div class="cf-group">Geral</div>
+    <a class="cf-nav-item" href="../index.html">Visão geral<span class="cf-tag">hub</span></a>
+    <a class="cf-nav-item" href="../API.md">API.md<span class="cf-tag">md</span></a>
+    <a class="cf-nav-item" href="../global.html">Spec global<span class="cf-tag">redoc</span></a>
   </aside>
 
   <main class="cf-main">
-    <section class="cf-ribbon">
-      <h2 class="cf-ribbon-title" id="ribbonTitle">API</h2>
-      <div class="cf-meta" id="ribbonMeta"></div>
-    </section>
-    <section class="cf-swagger">
-      <div id="swagger-ui"></div>
-    </section>
-  </main>
-</div>
-  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-  <script id="openapi-spec"
-    type="application/json">{"openapi":"3.1.0","info":{"title":"hemocheck API","version":"1.0.0","description":"**hemocheck** — Análise hematológica (hemograma).\n\nProcessa 15 exames das séries vermelha (hemácias, hemoglobina, hematócrito,\nVCM, HCM, CHCM, RDW), branca (leucócitos, neutrófilos, linfócitos, monócitos,\neosinófilos, basófilos) e plaquetária (plaquetas, VPM), calcula a razão NLR\n(Neutrófilos/Linfócitos) e detecta correlações de inflamação e alterações\nhematológicas. Alguns exames têm faixas sexo-específicas.\n\n- **Porta dev:** 3009\n- **Domínio:** https://hemograma.nutricao360.com/\n- **Tabela do app:** `hemo_analyses`\n- **Auth:** cookie `__session_hemo` (JWT HS256, 1 ano)\n"},"servers":[{"url":"http://localhost:3009","description":"Desenvolvimento"},{"url":"https://hemograma.nutricao360.com","description":"Produção"}],"tags":[{"name":"Auth (REST)"},{"name":"Webhooks"},{"name":"tRPC - system"},{"name":"tRPC - auth"},{"name":"tRPC - analysis","description":"Preview, persistência e histórico de análises hematológicas."}],"paths":{"/api/oauth/callback":{"get":{"tags":["Auth (REST)"],"summary":"Callback OAuth","parameters":[{"in":"query","name":"code","required":true,"schema":{"type":"string"}},{"in":"query","name":"state","required":true,"schema":{"type":"string"}}],"responses":{"302":{"description":"Redireciona para `/` com cookie de sessão."},"400":{"$ref":"#/components/responses/BadRequest"},"500":{"$ref":"#/components/responses/ServerError"}}}},"/api/webhook/guru":{"get":{"tags":["Webhooks"],"summary":"Healthcheck do webhook","responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"status":{"type":"string","example":"ok"},"service":{"type":"string","example":"guru-webhook"}}}}}}}},"post":{"tags":["Webhooks"],"summary":"Evento de assinatura Guru","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/GuruWebhookPayload"}}}},"responses":{"200":{"$ref":"#/components/responses/WebhookOk"},"401":{"$ref":"#/components/responses/Unauthorized"},"500":{"$ref":"#/components/responses/ServerError"}}}},"/api/trpc/system.health":{"get":{"tags":["tRPC - system"],"summary":"system.health (query, public)","parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"$ref":"#/components/responses/TrpcOk"}}}},"/api/trpc/system.notifyOwner":{"post":{"tags":["tRPC - system"],"summary":"system.notifyOwner (mutation, admin)","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"title":{"type":"string"},"content":{"type":"string"}}}}}},"responses":{"200":{"$ref":"#/components/responses/TrpcOk"},"401":{"$ref":"#/components/responses/Unauthorized"},"403":{"$ref":"#/components/responses/Forbidden"}}}},"/api/trpc/auth.me":{"get":{"tags":["tRPC - auth"],"summary":"auth.me (query, public)","parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"oneOf":[{"$ref":"#/components/schemas/User"},{"type":"null"}]}}}}}]}}}}}}},"/api/trpc/auth.logout":{"post":{"tags":["tRPC - auth"],"summary":"auth.logout (mutation, public)","responses":{"200":{"$ref":"#/components/responses/SuccessTrue"}}}},"/api/trpc/auth.emailAccess":{"post":{"tags":["tRPC - auth"],"summary":"auth.emailAccess (mutation, public)","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["email"],"properties":{"email":{"type":"string","format":"email"}}}}}},"responses":{"200":{"$ref":"#/components/responses/EmailAccessOk"}}}},"/api/trpc/auth.checkAccess":{"get":{"tags":["tRPC - auth"],"summary":"auth.checkAccess (query, public)","parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"$ref":"#/components/responses/TrpcOk"}}}},"/api/trpc/analysis.preview":{"post":{"tags":["tRPC - analysis"],"summary":"analysis.preview (mutation, public)","description":"Processa exames e retorna `examResults`, `ratios`, `correlations` e `summary`\n**sem persistir**. Disponível publicamente para demonstração. O campo `sex`\né opcional e ajusta as faixas sexo-específicas de alguns exames.\n","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["exams"],"properties":{"sex":{"type":"string","enum":["male","female"]},"exams":{"$ref":"#/components/schemas/ExamMap"}}}}}},"responses":{"200":{"$ref":"#/components/responses/AnalysisDataOk"}}}},"/api/trpc/analysis.save":{"post":{"tags":["tRPC - analysis"],"summary":"analysis.save (mutation, protected)","description":"Processa, persiste em `hemo_analyses` e retorna análise completa com `id`.","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["examDate","exams"],"properties":{"examDate":{"type":"integer","description":"Timestamp em ms."},"sex":{"type":"string","enum":["male","female"]},"exams":{"$ref":"#/components/schemas/ExamMap"}}}}}},"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"allOf":[{"$ref":"#/components/schemas/AnalysisData"},{"properties":{"id":{"type":"integer"}}}]}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/analysis.getById":{"get":{"tags":["tRPC - analysis"],"summary":"analysis.getById (query, protected)","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"oneOf":[{"allOf":[{"$ref":"#/components/schemas/AnalysisData"},{"properties":{"id":{"type":"integer"},"examDate":{"type":"integer"},"sex":{"type":"string","enum":["male","female"]},"rawExams":{"$ref":"#/components/schemas/ExamMap"}}}]},{"type":"null"}]}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/analysis.list":{"get":{"tags":["tRPC - analysis"],"summary":"analysis.list (query, protected)","description":"Resumos (contadores por status) das análises do usuário.","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/AnalysisSummary"}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/analysis.evolution":{"get":{"tags":["tRPC - analysis"],"summary":"analysis.evolution (query, protected)","description":"Série temporal de valores normalizados por exame/razão (gráfico).","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/EvolutionPoint"}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/analysis.delete":{"post":{"tags":["tRPC - analysis"],"summary":"analysis.delete (mutation, protected)","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["id"],"properties":{"id":{"type":"integer"}}}}}},"responses":{"200":{"$ref":"#/components/responses/SuccessBool"},"401":{"$ref":"#/components/responses/Unauthorized"}}}}},"components":{"securitySchemes":{"sessionCookie":{"type":"apiKey","in":"cookie","name":"__session_hemo"}},"parameters":{"TrpcInput":{"in":"query","name":"input","schema":{"type":"string"},"description":"Input do procedure serializado como JSON URL-encoded (tRPC v10)."}},"responses":{"BadRequest":{"description":"Parâmetros inválidos.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"Unauthorized":{"description":"Não autenticado.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"Forbidden":{"description":"Requer role de admin.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"ServerError":{"description":"Erro interno.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"TrpcOk":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TrpcResult"}}}},"WebhookOk":{"description":"Evento aceito.","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}}}}}},"EmailAccessOk":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"oneOf":[{"type":"object","properties":{"success":{"const":true},"user":{"$ref":"#/components/schemas/User"}}},{"type":"object","properties":{"success":{"const":false},"error":{"type":"string"}}}]}}}}}]}}}},"SuccessTrue":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"object","properties":{"success":{"type":"boolean","example":true}}}}}}}]}}}},"SuccessBool":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"object","properties":{"success":{"type":"boolean"}}}}}}}]}}}},"AnalysisDataOk":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"$ref":"#/components/schemas/AnalysisData"}}}}}]}}}}},"schemas":{"Error":{"type":"object","required":["error"],"properties":{"error":{"type":"string"}}},"User":{"type":"object","required":["id","openId","role","createdAt","updatedAt","lastSignedIn"],"properties":{"id":{"type":"integer"},"openId":{"type":"string"},"name":{"type":"string","nullable":true},"email":{"type":"string","format":"email","nullable":true},"loginMethod":{"type":"string","nullable":true},"role":{"type":"string","enum":["user","admin"]},"createdAt":{"type":"string","format":"date-time"},"updatedAt":{"type":"string","format":"date-time"},"lastSignedIn":{"type":"string","format":"date-time"}}},"TrpcResult":{"type":"object","properties":{"result":{"type":"object","properties":{"data":{}}}}},"GuruWebhookPayload":{"type":"object","required":["api_token"],"properties":{"api_token":{"type":"string"},"id":{"type":"string"},"event":{"type":"string"},"status":{"type":"string"},"contact":{"type":"object","properties":{"email":{"type":"string","format":"email"},"name":{"type":"string"}}},"product":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}}}},"ExamId":{"type":"string","enum":["hemacias","hemoglobina","hematocrito","vcm","hcm","chcm","rdw","leucocitos","neutrofilos","linfocitos","monocitos","eosinofilos","basofilos","plaquetas","vpm"]},"RatioId":{"type":"string","enum":["nlr"]},"TrafficLight":{"type":"string","enum":["optimal","attention","alert"]},"ExamValue":{"type":"object","required":["value","unit"],"properties":{"value":{"type":"number"},"unit":{"type":"string","example":"g/dL"}}},"ExamMap":{"type":"object","description":"Mapa `{ examId -> { value, unit } }`. Chaves devem ser `ExamId`.","additionalProperties":{"$ref":"#/components/schemas/ExamValue"}},"ExamResult":{"type":"object","properties":{"id":{"$ref":"#/components/schemas/ExamId"},"name":{"type":"string"},"value":{"type":"number"},"unit":{"type":"string"},"normalizedValue":{"type":"number"},"status":{"$ref":"#/components/schemas/TrafficLight"},"optimalRange":{"type":"string"},"description":{"type":"string"},"importance":{"type":"string"}}},"RatioResult":{"type":"object","properties":{"id":{"$ref":"#/components/schemas/RatioId"},"name":{"type":"string"},"formula":{"type":"string"},"value":{"type":"number"},"status":{"$ref":"#/components/schemas/TrafficLight"},"optimalRange":{"type":"string"},"description":{"type":"string"}}},"Correlation":{"type":"object","properties":{"id":{"type":"string"},"title":{"type":"string"},"description":{"type":"string"},"severity":{"$ref":"#/components/schemas/TrafficLight"},"relatedExams":{"type":"array","items":{"$ref":"#/components/schemas/ExamId"}}}},"AnalysisData":{"type":"object","properties":{"examResults":{"type":"array","items":{"$ref":"#/components/schemas/ExamResult"}},"ratios":{"type":"array","items":{"$ref":"#/components/schemas/RatioResult"}},"correlations":{"type":"array","items":{"$ref":"#/components/schemas/Correlation"}},"summary":{"type":"array","items":{"type":"string"}}}},"AnalysisSummary":{"type":"object","properties":{"id":{"type":"integer"},"examDate":{"type":"integer"},"examCount":{"type":"integer"},"alertCount":{"type":"integer"},"attentionCount":{"type":"integer"},"optimalCount":{"type":"integer"},"correlationCount":{"type":"integer"}}},"EvolutionPoint":{"type":"object","properties":{"examDate":{"type":"integer"},"values":{"type":"object","additionalProperties":{"type":"number","nullable":true}}}}}}}</script>
-  <script>
-    const spec = JSON.parse(document.getElementById('openapi-spec').textContent);
-    // popula o ribbon com título/servers/versão a partir do spec
-    (function () {
-      try {
-        var info = spec && spec.info ? spec.info : {};
-        var t = document.getElementById('ribbonTitle');
-        if (t) t.textContent = info.title || 'API';
-        var meta = document.getElementById('ribbonMeta');
-        if (meta) {
-          (spec.servers || []).slice(0, 2).forEach(function (s) {
-            var e = document.createElement('span'); e.className = 'cf-mono';
-            e.textContent = s.url; meta.appendChild(e);
-          });
-          var v = document.createElement('span'); v.className = 'cf-mono';
-          v.textContent = 'OpenAPI ' + (spec.openapi || '3.0'); meta.appendChild(v);
-        }
-        if (info.title) document.title = info.title + ' · Docs';
-      } catch (e) {}
-    })();
+    <article class="cf-content">
 
     
+    <p class="cf-eyebrow">API</p>
+    <h1>hemocheck API</h1>
+    <p class="cf-lede"><strong>hemocheck</strong> — Análise hematológica (hemograma).</p>
+    <div class="cf-info-desc"><p>Processa 15 exames das séries vermelha (hemácias, hemoglobina, hematócrito, VCM, HCM, CHCM, RDW), branca (leucócitos, neutrófilos, linfócitos, monócitos, eosinófilos, basófilos) e plaquetária (plaquetas, VPM), calcula a razão NLR (Neutrófilos/Linfócitos) e detecta correlações de inflamação e alterações hematológicas. Alguns exames têm faixas sexo-específicas.</p>
+<ul><li><strong>Porta dev:</strong> 3009</li><li><strong>Domínio:</strong> <a href="https://hemograma.nutricao360.com/" target="_blank" rel="noopener">https://hemograma.nutricao360.com/</a></li><li><strong>Tabela do app:</strong> <code>hemo_analyses</code></li><li><strong>Auth:</strong> cookie <code>__session_hemo</code> (JWT HS256, 1 ano)</li></ul></div>
+    
+    <h4 class="cf-servers-title">Servers</h4>
+    <div class="cf-pills"><span class="cf-pill"><code>https://hemograma.nutricao360.com</code></span></div>
+  
+    
+    <section class="cf-spec-section" id="security">
+      <h2>Autenticação</h2>
+      
+      <article class="cf-schema" id="sec-sessionCookie">
+        <header class="cf-endpoint-head">
+          <span class="cf-method" style="background:#7c7c7c">AUTH</span>
+          <code class="cf-path">sessionCookie</code>
+        </header>
+        
+        <p class="cf-meta-line">tipo: <code>apiKey</code> • em: <code>cookie</code> • param: <code>__session_hemo</code></p>
+      </article>
+    </section>
+    
+    <section class="cf-spec-section" id="tag-Auth%20(REST)">
+      <h2>Auth (REST)</h2>
+      
+      
+    <article class="cf-endpoint is-collapsed" id="op-get-api-oauth-callback">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/oauth/callback</code>
+        <span class="cf-endpoint-summary-inline">Callback OAuth</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>code</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>state</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-3xx">302</code>
+          <span class="cf-response-desc"><p>Redireciona para <code>/</code> com cookie de sessão.</p></span>
+        </div>
+        
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">400</code>
+          <span class="cf-response-desc"><p>Parâmetros inválidos.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-5xx">500</code>
+          <span class="cf-response-desc"><p>Erro interno.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    <section class="cf-spec-section" id="tag-Webhooks">
+      <h2>Webhooks</h2>
+      
+      
+    <article class="cf-endpoint is-collapsed" id="op-get-api-webhook-guru">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/webhook/guru</code>
+        <span class="cf-endpoint-summary-inline">Healthcheck do webhook</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;status&quot;: &quot;ok&quot;,
+  &quot;service&quot;: &quot;guru-webhook&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>status</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><div class="cf-meta-line">ex.: <code>&quot;ok&quot;</code></div></td>
+      </tr>
+      <tr>
+        <td><code>service</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><div class="cf-meta-line">ex.: <code>&quot;guru-webhook&quot;</code></div></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-webhook-guru">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/webhook/guru</code>
+        <span class="cf-endpoint-summary-inline">Evento de assinatura Guru</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-GuruWebhookPayload"><code>GuruWebhookPayload</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;api_token&quot;: &quot;string&quot;,
+  &quot;id&quot;: &quot;string&quot;,
+  &quot;event&quot;: &quot;string&quot;,
+  &quot;status&quot;: &quot;string&quot;,
+  &quot;contact&quot;: {
+    &quot;email&quot;: &quot;user@example.com&quot;,
+    &quot;name&quot;: &quot;string&quot;
+  },
+  &quot;product&quot;: {
+    &quot;id&quot;: &quot;string&quot;,
+    &quot;name&quot;: &quot;string&quot;
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>api_token</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>event</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>status</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>contact</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>product</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>Evento aceito.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;success&quot;: true,
+  &quot;message&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>success</code></td>
+        <td><code>boolean</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>message</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-5xx">500</code>
+          <span class="cf-response-desc"><p>Erro interno.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    <section class="cf-spec-section" id="tag-tRPC%20-%20system">
+      <h2>tRPC - system</h2>
+      
+      
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-system-health">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/system.health</code>
+        <span class="cf-endpoint-summary-inline">system.health (query, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: null
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-system-notifyOwner">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/system.notifyOwner</code>
+        <span class="cf-endpoint-summary-inline">system.notifyOwner (mutation, admin)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;title&quot;: &quot;string&quot;,
+  &quot;content&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>title</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>content</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: null
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">403</code>
+          <span class="cf-response-desc"><p>Requer role de admin.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    <section class="cf-spec-section" id="tag-tRPC%20-%20auth">
+      <h2>tRPC - auth</h2>
+      
+      
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-auth-me">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/auth.me</code>
+        <span class="cf-endpoint-summary-inline">auth.me (query, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;id&quot;: 0,
+      &quot;openId&quot;: &quot;string&quot;,
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;email&quot;: &quot;user@example.com&quot;,
+      &quot;loginMethod&quot;: &quot;string&quot;,
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+      &quot;updatedAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+      &quot;lastSignedIn&quot;: &quot;2025-01-01T00:00:00Z&quot;
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-auth-logout">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/auth.logout</code>
+        <span class="cf-endpoint-summary-inline">auth.logout (mutation, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;success&quot;: true
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-auth-emailAccess">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/auth.emailAccess</code>
+        <span class="cf-endpoint-summary-inline">auth.emailAccess (mutation, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;email&quot;: &quot;user@example.com&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>email</code></td>
+        <td><code>string (email)</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;success&quot;: true,
+      &quot;user&quot;: {
+        &quot;id&quot;: 0,
+        &quot;openId&quot;: &quot;string&quot;,
+        &quot;name&quot;: &quot;string&quot;,
+        &quot;email&quot;: &quot;user@example.com&quot;,
+        &quot;loginMethod&quot;: &quot;string&quot;,
+        &quot;role&quot;: &quot;user&quot;,
+        &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+        &quot;updatedAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+        &quot;lastSignedIn&quot;: &quot;2025-01-01T00:00:00Z&quot;
+      }
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-auth-checkAccess">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/auth.checkAccess</code>
+        <span class="cf-endpoint-summary-inline">auth.checkAccess (query, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: null
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    <section class="cf-spec-section" id="tag-tRPC%20-%20analysis">
+      <h2>tRPC - analysis</h2>
+      <p>Preview, persistência e histórico de análises hematológicas.</p>
+      
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-analysis-preview">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/analysis.preview</code>
+        <span class="cf-endpoint-summary-inline">analysis.preview (mutation, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Processa exames e retorna <code>examResults</code>, <code>ratios</code>, <code>correlations</code> e <code>summary</code> <strong>sem persistir</strong>. Disponível publicamente para demonstração. O campo <code>sex</code> é opcional e ajusta as faixas sexo-específicas de alguns exames.</p></div>
+        
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;sex&quot;: &quot;male&quot;,
+  &quot;exams&quot;: {
+    &quot;&lt;chave&gt;&quot;: {
+      &quot;value&quot;: 0,
+      &quot;unit&quot;: &quot;g/dL&quot;
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>sex</code></td>
+        <td><code>enum</code>(<code>&quot;male&quot;</code>, <code>&quot;female&quot;</code>)</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>exams</code></td>
+        <td><a href="#schema-ExamMap"><code>ExamMap</code></a></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td><p>Mapa <code>{ examId -&gt; { value, unit } }</code>. Chaves devem ser <code>ExamId</code>.</p></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;examResults&quot;: [
+        {
+          &quot;id&quot;: &quot;hemacias&quot;,
+          &quot;name&quot;: &quot;string&quot;,
+          &quot;value&quot;: 0,
+          &quot;unit&quot;: &quot;string&quot;,
+          &quot;normalizedValue&quot;: 0,
+          &quot;status&quot;: &quot;optimal&quot;,
+          &quot;optimalRange&quot;: &quot;string&quot;,
+          &quot;description&quot;: &quot;string&quot;,
+          &quot;importance&quot;: &quot;string&quot;
+        }
+      ],
+      &quot;ratios&quot;: [
+        {
+          &quot;id&quot;: &quot;nlr&quot;,
+          &quot;name&quot;: &quot;string&quot;,
+          &quot;formula&quot;: &quot;string&quot;,
+          &quot;value&quot;: 0,
+          &quot;status&quot;: &quot;optimal&quot;,
+          &quot;optimalRange&quot;: &quot;string&quot;,
+          &quot;description&quot;: &quot;string&quot;
+        }
+      ],
+      &quot;correlations&quot;: [
+        {
+          &quot;id&quot;: &quot;string&quot;,
+          &quot;title&quot;: &quot;string&quot;,
+          &quot;description&quot;: &quot;string&quot;,
+          &quot;severity&quot;: &quot;optimal&quot;,
+          &quot;relatedExams&quot;: [
+            &quot;hemacias&quot;
+          ]
+        }
+      ],
+      &quot;summary&quot;: [
+        &quot;string&quot;
+      ]
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-analysis-save">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/analysis.save</code>
+        <span class="cf-endpoint-summary-inline">analysis.save (mutation, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Processa, persiste em <code>hemo_analyses</code> e retorna análise completa com <code>id</code>.</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;examDate&quot;: 0,
+  &quot;sex&quot;: &quot;male&quot;,
+  &quot;exams&quot;: {
+    &quot;&lt;chave&gt;&quot;: {
+      &quot;value&quot;: 0,
+      &quot;unit&quot;: &quot;g/dL&quot;
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>examDate</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td><p>Timestamp em ms.</p></td>
+      </tr>
+      <tr>
+        <td><code>sex</code></td>
+        <td><code>enum</code>(<code>&quot;male&quot;</code>, <code>&quot;female&quot;</code>)</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>exams</code></td>
+        <td><a href="#schema-ExamMap"><code>ExamMap</code></a></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td><p>Mapa <code>{ examId -&gt; { value, unit } }</code>. Chaves devem ser <code>ExamId</code>.</p></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;examResults&quot;: [
+        {
+          &quot;id&quot;: &quot;hemacias&quot;,
+          &quot;name&quot;: &quot;string&quot;,
+          &quot;value&quot;: 0,
+          &quot;unit&quot;: &quot;string&quot;,
+          &quot;normalizedValue&quot;: 0,
+          &quot;status&quot;: &quot;optimal&quot;,
+          &quot;optimalRange&quot;: &quot;string&quot;,
+          &quot;description&quot;: &quot;string&quot;,
+          &quot;importance&quot;: &quot;string&quot;
+        }
+      ],
+      &quot;ratios&quot;: [
+        {
+          &quot;id&quot;: &quot;nlr&quot;,
+          &quot;name&quot;: &quot;string&quot;,
+          &quot;formula&quot;: &quot;string&quot;,
+          &quot;value&quot;: 0,
+          &quot;status&quot;: &quot;optimal&quot;,
+          &quot;optimalRange&quot;: &quot;string&quot;,
+          &quot;description&quot;: &quot;string&quot;
+        }
+      ],
+      &quot;correlations&quot;: [
+        {
+          &quot;id&quot;: &quot;string&quot;,
+          &quot;title&quot;: &quot;string&quot;,
+          &quot;description&quot;: &quot;string&quot;,
+          &quot;severity&quot;: &quot;optimal&quot;,
+          &quot;relatedExams&quot;: [
+            &quot;hemacias&quot;
+          ]
+        }
+      ],
+      &quot;summary&quot;: [
+        &quot;string&quot;
+      ],
+      &quot;id&quot;: 0
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-analysis-getById">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/analysis.getById</code>
+        <span class="cf-endpoint-summary-inline">analysis.getById (query, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;examResults&quot;: [
+        {
+          &quot;id&quot;: &quot;hemacias&quot;,
+          &quot;name&quot;: &quot;string&quot;,
+          &quot;value&quot;: 0,
+          &quot;unit&quot;: &quot;string&quot;,
+          &quot;normalizedValue&quot;: 0,
+          &quot;status&quot;: &quot;optimal&quot;,
+          &quot;optimalRange&quot;: &quot;string&quot;,
+          &quot;description&quot;: &quot;string&quot;,
+          &quot;importance&quot;: &quot;string&quot;
+        }
+      ],
+      &quot;ratios&quot;: [
+        {
+          &quot;id&quot;: &quot;nlr&quot;,
+          &quot;name&quot;: &quot;string&quot;,
+          &quot;formula&quot;: &quot;string&quot;,
+          &quot;value&quot;: 0,
+          &quot;status&quot;: &quot;optimal&quot;,
+          &quot;optimalRange&quot;: &quot;string&quot;,
+          &quot;description&quot;: &quot;string&quot;
+        }
+      ],
+      &quot;correlations&quot;: [
+        {
+          &quot;id&quot;: &quot;string&quot;,
+          &quot;title&quot;: &quot;string&quot;,
+          &quot;description&quot;: &quot;string&quot;,
+          &quot;severity&quot;: &quot;optimal&quot;,
+          &quot;relatedExams&quot;: [
+            &quot;hemacias&quot;
+          ]
+        }
+      ],
+      &quot;summary&quot;: [
+        &quot;string&quot;
+      ],
+      &quot;id&quot;: 0,
+      &quot;examDate&quot;: 0,
+      &quot;sex&quot;: &quot;male&quot;,
+      &quot;rawExams&quot;: {
+        &quot;&lt;chave&gt;&quot;: {
+          &quot;value&quot;: 0,
+          &quot;unit&quot;: &quot;g/dL&quot;
+        }
+      }
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-analysis-list">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/analysis.list</code>
+        <span class="cf-endpoint-summary-inline">analysis.list (query, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Resumos (contadores por status) das análises do usuário.</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: [
+      {
+        &quot;id&quot;: 0,
+        &quot;examDate&quot;: 0,
+        &quot;examCount&quot;: 0,
+        &quot;alertCount&quot;: 0,
+        &quot;attentionCount&quot;: 0,
+        &quot;optimalCount&quot;: 0,
+        &quot;correlationCount&quot;: 0
+      }
+    ]
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-analysis-evolution">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/analysis.evolution</code>
+        <span class="cf-endpoint-summary-inline">analysis.evolution (query, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Série temporal de valores normalizados por exame/razão (gráfico).</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: [
+      {
+        &quot;examDate&quot;: 0,
+        &quot;values&quot;: {
+          &quot;&lt;chave&gt;&quot;: 0
+        }
+      }
+    ]
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-analysis-delete">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/analysis.delete</code>
+        <span class="cf-endpoint-summary-inline">analysis.delete (mutation, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;id&quot;: 0
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;success&quot;: true
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    
+    <section class="cf-spec-section" id="schemas">
+      <h2>Schemas</h2>
+      
+    <article class="cf-schema is-collapsed" id="schema-Error">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">Error</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-User">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">User</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;id&quot;: 0,
+  &quot;openId&quot;: &quot;string&quot;,
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;email&quot;: &quot;user@example.com&quot;,
+  &quot;loginMethod&quot;: &quot;string&quot;,
+  &quot;role&quot;: &quot;user&quot;,
+  &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+  &quot;updatedAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+  &quot;lastSignedIn&quot;: &quot;2025-01-01T00:00:00Z&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>openId</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>email</code></td>
+        <td><code>string (email)</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>loginMethod</code></td>
+        <td><code>string</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>role</code></td>
+        <td><code>enum</code>(<code>&quot;user&quot;</code>, <code>&quot;admin&quot;</code>)</td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>createdAt</code></td>
+        <td><code>string (date-time)</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>updatedAt</code></td>
+        <td><code>string (date-time)</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>lastSignedIn</code></td>
+        <td><code>string (date-time)</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-TrpcResult">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">TrpcResult</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: null
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-GuruWebhookPayload">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">GuruWebhookPayload</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;api_token&quot;: &quot;string&quot;,
+  &quot;id&quot;: &quot;string&quot;,
+  &quot;event&quot;: &quot;string&quot;,
+  &quot;status&quot;: &quot;string&quot;,
+  &quot;contact&quot;: {
+    &quot;email&quot;: &quot;user@example.com&quot;,
+    &quot;name&quot;: &quot;string&quot;
+  },
+  &quot;product&quot;: {
+    &quot;id&quot;: &quot;string&quot;,
+    &quot;name&quot;: &quot;string&quot;
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>api_token</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>event</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>status</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>contact</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>product</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-ExamId">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">STRING</span>
+        <code class="cf-path">ExamId</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>&quot;hemacias&quot;</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            <p class="cf-meta-line">Sem propriedades documentadas.</p>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-RatioId">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">STRING</span>
+        <code class="cf-path">RatioId</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>&quot;nlr&quot;</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            <p class="cf-meta-line">Sem propriedades documentadas.</p>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-TrafficLight">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">STRING</span>
+        <code class="cf-path">TrafficLight</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>&quot;optimal&quot;</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            <p class="cf-meta-line">Sem propriedades documentadas.</p>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-ExamValue">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">ExamValue</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;value&quot;: 0,
+  &quot;unit&quot;: &quot;g/dL&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>value</code></td>
+        <td><code>number</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>unit</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td><div class="cf-meta-line">ex.: <code>&quot;g/dL&quot;</code></div></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-ExamMap">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">ExamMap</code>
+        <span class="cf-endpoint-summary-inline">Mapa `{ examId -&gt; { value, unit } }`. Chaves devem ser `ExamId`.</span>
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Mapa <code>{ examId -&gt; { value, unit } }</code>. Chaves devem ser <code>ExamId</code>.</p></div>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;&lt;chave&gt;&quot;: {
+    &quot;value&quot;: 0,
+    &quot;unit&quot;: &quot;g/dL&quot;
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            <p class="cf-meta-line">Sem propriedades documentadas.</p>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-ExamResult">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">ExamResult</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;id&quot;: &quot;hemacias&quot;,
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;value&quot;: 0,
+  &quot;unit&quot;: &quot;string&quot;,
+  &quot;normalizedValue&quot;: 0,
+  &quot;status&quot;: &quot;optimal&quot;,
+  &quot;optimalRange&quot;: &quot;string&quot;,
+  &quot;description&quot;: &quot;string&quot;,
+  &quot;importance&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td><a href="#schema-ExamId"><code>ExamId</code></a></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>value</code></td>
+        <td><code>number</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>unit</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>normalizedValue</code></td>
+        <td><code>number</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>status</code></td>
+        <td><a href="#schema-TrafficLight"><code>TrafficLight</code></a></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>optimalRange</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>description</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>importance</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-RatioResult">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">RatioResult</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;id&quot;: &quot;nlr&quot;,
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;formula&quot;: &quot;string&quot;,
+  &quot;value&quot;: 0,
+  &quot;status&quot;: &quot;optimal&quot;,
+  &quot;optimalRange&quot;: &quot;string&quot;,
+  &quot;description&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td><a href="#schema-RatioId"><code>RatioId</code></a></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>formula</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>value</code></td>
+        <td><code>number</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>status</code></td>
+        <td><a href="#schema-TrafficLight"><code>TrafficLight</code></a></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>optimalRange</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>description</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-Correlation">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">Correlation</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;id&quot;: &quot;string&quot;,
+  &quot;title&quot;: &quot;string&quot;,
+  &quot;description&quot;: &quot;string&quot;,
+  &quot;severity&quot;: &quot;optimal&quot;,
+  &quot;relatedExams&quot;: [
+    &quot;hemacias&quot;
+  ]
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>title</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>description</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>severity</code></td>
+        <td><a href="#schema-TrafficLight"><code>TrafficLight</code></a></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>relatedExams</code></td>
+        <td><code>array&lt;</code><a href="#schema-ExamId"><code>ExamId</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-AnalysisData">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">AnalysisData</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;examResults&quot;: [
+    {
+      &quot;id&quot;: &quot;hemacias&quot;,
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;value&quot;: 0,
+      &quot;unit&quot;: &quot;string&quot;,
+      &quot;normalizedValue&quot;: 0,
+      &quot;status&quot;: &quot;optimal&quot;,
+      &quot;optimalRange&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;string&quot;,
+      &quot;importance&quot;: &quot;string&quot;
+    }
+  ],
+  &quot;ratios&quot;: [
+    {
+      &quot;id&quot;: &quot;nlr&quot;,
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;formula&quot;: &quot;string&quot;,
+      &quot;value&quot;: 0,
+      &quot;status&quot;: &quot;optimal&quot;,
+      &quot;optimalRange&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;string&quot;
+    }
+  ],
+  &quot;correlations&quot;: [
+    {
+      &quot;id&quot;: &quot;string&quot;,
+      &quot;title&quot;: &quot;string&quot;,
+      &quot;description&quot;: &quot;string&quot;,
+      &quot;severity&quot;: &quot;optimal&quot;,
+      &quot;relatedExams&quot;: [
+        &quot;hemacias&quot;
+      ]
+    }
+  ],
+  &quot;summary&quot;: [
+    &quot;string&quot;
+  ]
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>examResults</code></td>
+        <td><code>array&lt;</code><a href="#schema-ExamResult"><code>ExamResult</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>ratios</code></td>
+        <td><code>array&lt;</code><a href="#schema-RatioResult"><code>RatioResult</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>correlations</code></td>
+        <td><code>array&lt;</code><a href="#schema-Correlation"><code>Correlation</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>summary</code></td>
+        <td><code>array&lt;</code><code>string</code><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-AnalysisSummary">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">AnalysisSummary</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;id&quot;: 0,
+  &quot;examDate&quot;: 0,
+  &quot;examCount&quot;: 0,
+  &quot;alertCount&quot;: 0,
+  &quot;attentionCount&quot;: 0,
+  &quot;optimalCount&quot;: 0,
+  &quot;correlationCount&quot;: 0
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>examDate</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>examCount</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>alertCount</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>attentionCount</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>optimalCount</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>correlationCount</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-EvolutionPoint">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">EvolutionPoint</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;examDate&quot;: 0,
+  &quot;values&quot;: {
+    &quot;&lt;chave&gt;&quot;: 0
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>examDate</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>values</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    </section>
+  
+    </article>
+  </main>
+</div>
 
-    window.ui = SwaggerUIBundle({
-      spec: spec,
-      dom_id: '#swagger-ui',
-      deepLinking: true,
-      presets: [SwaggerUIBundle.presets.apis],
-      docExpansion: 'list',
-      defaultModelsExpandDepth: 1,
-      tryItOutEnabled: false,
-    });
-  </script>
   <script src="../../assets/cofounder.js"></script>
 </body>
-
 </html>

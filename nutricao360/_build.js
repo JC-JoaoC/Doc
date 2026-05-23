@@ -1,7 +1,7 @@
-// Gera docs/<app>/index.html a partir de docs/<app>/openapi.yaml no estilo
-// "overview" (sem Swagger UI), usando o renderer compartilhado.
+// Gera nutricao360/<app>/index.html a partir de nutricao360/<app>/openapi.yaml
+// no estilo "overview" (sem Swagger UI), usando o renderer compartilhado.
 //
-// Uso: node docs/_build.js
+// Uso: node nutricao360/_build.js
 
 const fs = require('fs');
 const path = require('path');
@@ -14,19 +14,16 @@ function loadYaml(filePath) {
   return JSON.parse(out);
 }
 
-const docsDir = __dirname;
+const baseDir = __dirname;
 
-const HC = [
-  { key: 'cardiocheck', port: '3002', group: 'clinical' },
-  { key: 'glicocheck',  port: '3003', group: 'clinical' },
-  { key: 'hemocheck',   port: '3009', group: 'clinical' },
-  { key: 'nutricheck',  port: '3004', group: 'clinical' },
-  { key: 'osteocheck',  port: '3005', group: 'clinical' },
-  { key: 'renalcheck',  port: '3006', group: 'clinical' },
-  { key: 'sexcheck',    port: '3007', group: 'clinical' },
-  { key: 'tireocheck',  port: '3008', group: 'clinical' },
-  { key: 'aquaflow',    port: '3001', group: 'habit'    },
-  { key: 'listaCompras', port: '—',  group: 'habit'    },
+const N360 = [
+  { key: 'admin',    port: '3005', group: 'backoffice' },
+  { key: 'exames',   port: '3002', group: 'ai'         },
+  { key: 'nutricao', port: '3003', group: 'ai'         },
+  { key: 'corpo',    port: '3004', group: 'ai'         },
+  { key: 'receitas', port: '3006', group: 'ai'         },
+  { key: 'suporte',  port: '3005', group: 'ai'         },
+  { key: 'portal',   port: '3008', group: 'ai'         },
 ];
 
 const ICON_MENU = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`;
@@ -35,13 +32,13 @@ function topbarHtml() {
   return `<header class="cf-topbar">
   <button class="cf-icon cf-menu-toggle" id="cfMenuToggle" aria-label="Abrir menu">${ICON_MENU}</button>
   <a class="cf-brand" href="../../index.html">
-    <span class="cf-logo">⚕</span>
-    <span>HealthCheck Docs</span>
+    <span class="cf-logo">N</span>
+    <span>Nutricao360 Docs</span>
   </a>
   <nav class="cf-nav">
     <a href="../../index.html">Overview</a>
-    <a href="../index.html" class="is-active">HealthCheck</a>
-    <a href="../../nutricao360/index.html">Nutricao360</a>
+    <a href="../../docs/index.html">HealthCheck</a>
+    <a href="../index.html" class="is-active">Nutricao360</a>
     <a href="../../docs-csat/docs.html">CSAT</a>
   </nav>
   <div class="cf-spacer"></div>
@@ -53,9 +50,9 @@ function topbarHtml() {
 function sidebarHtml(spec) {
   const item = (label, href, tag) =>
     `    <a class="cf-nav-item" href="${href}">${label}<span class="cf-tag">${tag}</span></a>`;
-  const clinical = HC.filter(a => a.group === 'clinical')
+  const back = N360.filter(a => a.group === 'backoffice')
     .map(a => item(a.key, `../${a.key}/`, a.port)).join('\n');
-  const habit = HC.filter(a => a.group === 'habit')
+  const ai = N360.filter(a => a.group === 'ai')
     .map(a => item(a.key, `../${a.key}/`, a.port)).join('\n');
 
   const anchors = specTagAnchors(spec)
@@ -66,29 +63,26 @@ function sidebarHtml(spec) {
     <div class="cf-group">Esta API</div>
 ${anchors || '    <a class="cf-nav-item" href="#">—<span class="cf-tag">0</span></a>'}
 
-    <div class="cf-group">Análise clínica</div>
-${clinical}
+    <div class="cf-group">Backoffice</div>
+${back}
 
-    <div class="cf-group">Hábito e planejamento</div>
-${habit}
+    <div class="cf-group">Apps de IA</div>
+${ai}
 
     <div class="cf-group">Geral</div>
     <a class="cf-nav-item" href="../index.html">Visão geral<span class="cf-tag">hub</span></a>
     <a class="cf-nav-item" href="../API.md">API.md<span class="cf-tag">md</span></a>
-    <a class="cf-nav-item" href="../global.html">Spec global<span class="cf-tag">redoc</span></a>
   </aside>`;
 }
 
-const apps = fs.readdirSync(docsDir, { withFileTypes: true })
-  .filter(d => d.isDirectory())
-  .map(d => d.name)
-  .filter(name => fs.existsSync(path.join(docsDir, name, 'openapi.yaml')))
-  .sort();
-
-for (const app of apps) {
-  const yamlPath = path.join(docsDir, app, 'openapi.yaml');
+for (const app of N360) {
+  const yamlPath = path.join(baseDir, app.key, 'openapi.yaml');
+  if (!fs.existsSync(yamlPath)) {
+    console.log(`skip nutricao360/${app.key} (sem openapi.yaml)`);
+    continue;
+  }
   const spec = loadYaml(yamlPath);
-  const title = (spec.info && spec.info.title) || `${app} API`;
+  const title = (spec.info && spec.info.title) || `${app.key} API`;
   const contentHtml = renderSpecContent(spec);
 
   const html = `<!DOCTYPE html>
@@ -123,7 +117,7 @@ ${contentHtml}
 </html>
 `;
 
-  const outPath = path.join(docsDir, app, 'index.html');
+  const outPath = path.join(baseDir, app.key, 'index.html');
   fs.writeFileSync(outPath, html, 'utf8');
-  console.log(`wrote ${path.relative(path.join(docsDir, '..'), outPath)} (${(html.length / 1024).toFixed(1)} KB)`);
+  console.log(`wrote nutricao360/${app.key}/index.html (${(html.length / 1024).toFixed(1)} KB)`);
 }

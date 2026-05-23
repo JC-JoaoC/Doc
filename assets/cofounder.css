@@ -5,7 +5,7 @@
    ============================================================ */
 
 :root {
-  /* paleta light — UMA única cor de fundo para topbar, sidebar, main, ribbon e swagger */
+  /* paleta light — fundo branco puro */
   --bg:            #ffffff;
   --bg-soft:       #ffffff;
   --bg-elev:       #ffffff;
@@ -42,29 +42,35 @@
 }
 
 [data-theme="dark"] {
-  /* paleta dark — UMA única cor de fundo (preto puro) */
-  --bg:            #000000;
-  --bg-soft:       #000000;
-  --bg-elev:       #000000;
-  --bg-sidebar:    #000000;
-  --bg-hover:      #161616;
-  --border:        #1f1f1f;
-  --border-strong: #2a2a2a;
+  /* paleta dark — cinza-azulado escuro suave (#1c2022) */
+  --bg:            #1c2022;
+  --bg-soft:       #1c2022;
+  --bg-elev:       #23282b;
+  --bg-sidebar:    #1c2022;
+  --bg-hover:      #2a3034;
+  --border:        #2e3438;
+  --border-strong: #3d4549;
 
-  --fg:            #e8eaee;
-  --fg-strong:     #ffffff;
-  --muted:         #8b919c;
-  --muted-2:       #5b626d;
+  --fg:            #d8dde2;
+  --fg-strong:     #f4f6f8;
+  --muted:         #9aa2ac;
+  --muted-2:       #6c7480;
 
-  --accent:        #7c9bff;
-  --accent-hover:  #93acff;
-  --accent-soft:   #11183a;
+  --accent:        #8aa7ff;
+  --accent-hover:  #a3baff;
+  --accent-soft:   #1e2747;
 
-  --code-bg:       #0f0f0f;
-  --code-border:   #1f1f1f;
+  --code-bg:       #161a1c;
+  --code-border:   #2e3438;
 
-  --shadow-sm: 0 1px 1px rgba(0,0,0,0.4);
-  --shadow-md: 0 1px 2px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.5);
+  --shadow-sm: 0 1px 1px rgba(0,0,0,0.25);
+  --shadow-md: 0 1px 2px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.35);
+}
+
+/* required tag mais legível no dark */
+[data-theme="dark"] .cf-required {
+  background: #3a1e1e;
+  color: #ff8c8c;
 }
 
 /* ---------- reset / base ---------- */
@@ -79,6 +85,19 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* transição suave ao alternar entre tema claro/escuro */
+html, body,
+.cf-topbar, .cf-sidebar, .cf-main, .cf-ribbon,
+.cf-content, .cf-card, .cf-pill, .cf-search, .cf-icon,
+.cf-sidebar a.cf-nav-item, .cf-topbar .cf-nav a,
+.cf-content code, .cf-content pre, .cf-content blockquote,
+.cf-content th, .cf-content td,
+.cf-swagger, .cf-swagger .swagger-ui,
+.cf-swagger .swagger-ui .opblock,
+.cf-swagger .swagger-ui .opblock .opblock-section-header {
+  transition: background-color .25s ease, color .25s ease, border-color .25s ease;
 }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; }
@@ -493,27 +512,335 @@ button { font-family: inherit; }
   border-bottom: 1px solid var(--border);
 }
 
-/* dark: deixa o swagger inteiro confortável em fundo preto */
-[data-theme="dark"] .cf-swagger .swagger-ui,
-[data-theme="dark"] .cf-swagger .swagger-ui .info .title,
-[data-theme="dark"] .cf-swagger .swagger-ui .opblock-tag,
-[data-theme="dark"] .cf-swagger .swagger-ui .opblock .opblock-summary-path,
-[data-theme="dark"] .cf-swagger .swagger-ui .opblock .opblock-summary-description,
-[data-theme="dark"] .cf-swagger .swagger-ui .markdown p,
-[data-theme="dark"] .cf-swagger .swagger-ui .renderedMarkdown p,
-[data-theme="dark"] .cf-swagger .swagger-ui .model-title,
-[data-theme="dark"] .cf-swagger .swagger-ui .model,
-[data-theme="dark"] .cf-swagger .swagger-ui label,
-[data-theme="dark"] .cf-swagger .swagger-ui table thead tr td,
-[data-theme="dark"] .cf-swagger .swagger-ui table thead tr th,
-[data-theme="dark"] .cf-swagger .swagger-ui .response-col_status,
-[data-theme="dark"] .cf-swagger .swagger-ui .parameter__name,
-[data-theme="dark"] .cf-swagger .swagger-ui .parameter__type,
-[data-theme="dark"] .cf-swagger .swagger-ui .tab li,
-[data-theme="dark"] .cf-swagger .swagger-ui h4,
-[data-theme="dark"] .cf-swagger .swagger-ui h3,
-[data-theme="dark"] .cf-swagger .swagger-ui h2 {
+/* clareia os blocos de exemplo (request/response) que por padrão vêm com
+   fundo #41444e quase preto vindo do swagger-ui.css */
+.cf-swagger .swagger-ui pre,
+.cf-swagger .swagger-ui .example,
+.cf-swagger .swagger-ui .body-param__example,
+.cf-swagger .swagger-ui .microlight,
+.cf-swagger .swagger-ui .highlight-code,
+.cf-swagger .swagger-ui .opblock-body pre.example,
+.cf-swagger .swagger-ui .opblock-body pre,
+.cf-swagger .swagger-ui .response-col_description__inner pre {
+  background: var(--code-bg) !important;
+  color: var(--fg) !important;
+  border: 1px solid var(--code-border);
+  border-radius: 6px;
+}
+.cf-swagger .swagger-ui pre code,
+.cf-swagger .swagger-ui .microlight code,
+.cf-swagger .swagger-ui .highlight-code .microlight,
+.cf-swagger .swagger-ui .highlight-code span {
+  color: var(--fg) !important;
+  background: transparent !important;
+}
+
+/* ---------- páginas de spec (estilo overview, sem swagger-ui) ---------- */
+.cf-info-desc {
+  margin: 8px 0 18px;
   color: var(--fg);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.cf-info-desc p { margin: 0 0 12px; }
+.cf-info-desc ul {
+  margin: 8px 0 12px;
+  padding-left: 22px;
+}
+.cf-info-desc li { margin: 4px 0; color: var(--fg); }
+.cf-info-desc code {
+  font: 13px/1.4 var(--font-mono);
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  color: var(--fg-strong);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.cf-info-desc a {
+  color: var(--accent);
+  border-bottom: 1px solid transparent;
+  text-decoration: none;
+}
+.cf-info-desc a:hover { border-bottom-color: var(--accent); }
+.cf-servers-title {
+  margin: 24px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+.cf-spec-section {
+  margin: 48px 0;
+}
+.cf-spec-section h2 {
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--fg-strong);
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.cf-endpoint {
+  margin: 20px 0;
+  padding: 18px 20px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+}
+.cf-endpoint-head {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 8px;
+  flex-wrap: wrap;
+}
+.cf-method {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: #fff;
+  font: 600 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  min-width: 56px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.cf-path {
+  font: 14px/1.4 var(--font-mono);
+  color: var(--fg-strong);
+  word-break: break-all;
+}
+.cf-endpoint-summary {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.cf-endpoint-desc {
+  margin: 8px 0 12px;
+  color: var(--fg);
+  font-size: 14px;
+}
+.cf-endpoint-desc p { margin: 0 0 8px; }
+.cf-endpoint h4 {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+.cf-spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 8px;
+  font-size: 13px;
+}
+.cf-spec-table th, .cf-spec-table td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.cf-spec-table th {
+  background: var(--bg-hover);
+  font-weight: 600;
+  color: var(--fg-strong);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.cf-spec-table code {
+  font: 12px/1.4 var(--font-mono);
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  color: var(--fg-strong);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.cf-required {
+  display: inline-block;
+  padding: 1px 6px;
+  background: #fde7e7;
+  color: #c43a3a;
+  border-radius: 4px;
+  font: 600 11px/1 var(--font-mono);
+}
+.cf-optional {
+  color: var(--muted-2);
+  font: 600 11px/1 var(--font-mono);
+}
+.cf-meta-line {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.cf-status-2xx { color: #0a8a3a; font-weight: 600; }
+.cf-status-3xx { color: #1a8aa6; font-weight: 600; }
+.cf-status-4xx { color: #bb7700; font-weight: 600; }
+.cf-status-5xx { color: #c43a3a; font-weight: 600; }
+
+.cf-endpoint-security {
+  margin: 8px 0 12px;
+  padding: 8px 12px;
+  background: var(--accent-soft);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--fg);
+}
+.cf-endpoint-security code {
+  font: 12px/1.4 var(--font-mono);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.cf-endpoint-security a { color: var(--accent); text-decoration: none; }
+.cf-endpoint-security a:hover { text-decoration: underline; }
+
+.cf-deprecated {
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #fde7e7;
+  color: #c43a3a;
+  border-radius: 4px;
+  font: 600 11px/1 var(--font-mono);
+  text-transform: uppercase;
+}
+[data-theme="dark"] .cf-deprecated {
+  background: #3a1e1e;
+  color: #ff8c8c;
+}
+
+/* schemas (mesmo visual do .cf-endpoint, gerido por classe dedicada) */
+.cf-schema {
+  margin: 16px 0;
+  padding: 16px 18px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+}
+.cf-schema .cf-endpoint-head { margin-bottom: 8px; }
+.cf-schema .cf-meta-line { color: var(--muted); font-size: 13px; }
+
+/* link dentro da tabela de schemas (referências a outros schemas) */
+.cf-spec-table a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.cf-spec-table a:hover { text-decoration: underline; }
+
+/* ---------- collapse de endpoints e schemas ---------- */
+.cf-endpoint > .cf-endpoint-head,
+.cf-schema  > .cf-endpoint-head {
+  cursor: pointer;
+  user-select: none;
+}
+.cf-endpoint-summary-inline {
+  color: var(--muted);
+  font-size: 13px;
+  margin-left: 8px;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cf-collapse-arrow {
+  margin-left: auto;
+  font-size: 16px;
+  color: var(--muted-2);
+  transition: transform .15s ease;
+  flex-shrink: 0;
+}
+.cf-endpoint.is-collapsed .cf-collapse-arrow,
+.cf-schema.is-collapsed   .cf-collapse-arrow {
+  transform: rotate(-90deg);
+}
+.cf-endpoint.is-collapsed > .cf-endpoint-body,
+.cf-schema.is-collapsed   > .cf-endpoint-body {
+  display: none;
+}
+.cf-endpoint-body { padding-top: 8px; }
+
+/* ---------- tabs Example / Schema ---------- */
+.cf-tabs {
+  margin: 8px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.cf-tabs-bar {
+  display: flex;
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border);
+}
+.cf-tab {
+  background: transparent;
+  border: 0;
+  padding: 8px 14px;
+  font: 600 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .12s ease, background .12s ease, border-color .12s ease;
+}
+.cf-tab:hover { color: var(--fg-strong); }
+.cf-tab.is-active {
+  color: var(--fg-strong);
+  background: var(--bg);
+  border-bottom-color: var(--accent);
+}
+.cf-tab-panel { display: none; padding: 12px 14px; }
+.cf-tab-panel.is-active { display: block; }
+
+/* bloco de código JSON */
+.cf-code {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 6px;
+  font: 12px/1.5 var(--font-mono);
+  color: var(--fg-strong);
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+/* respostas (lista, não mais tabela) */
+.cf-responses {
+  display: flex; flex-direction: column;
+  gap: 6px;
+}
+.cf-response {
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.cf-response:last-child { border-bottom: 0; }
+.cf-response-head {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px;
+}
+.cf-response-head code {
+  font: 13px/1 var(--font-mono);
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+}
+.cf-response-desc { color: var(--muted); font-size: 13px; }
+.cf-body-type { margin: 8px 0; }
+
+/* sidebar — destaque para item ativo via scroll */
+.cf-sidebar a.cf-nav-item[href^="#tag-"] .cf-tag {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted-2);
 }
 
 /* ---------- backdrop / drawer mobile ---------- */

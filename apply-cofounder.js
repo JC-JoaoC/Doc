@@ -34,7 +34,6 @@ const N360 = [
 
 // ---------- helpers ----------
 const ICON_MENU = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`;
-const ICON_THEME = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>`;
 
 function topbar({ brandLabel, brandLogo, brandHref, navItems }) {
   const nav = navItems.map(n =>
@@ -51,7 +50,6 @@ ${nav}
   </nav>
   <div class="cf-spacer"></div>
   <input id="cfSearch" class="cf-search" type="search" placeholder="Buscar app…" />
-  <button class="cf-icon" id="cfThemeToggle" aria-label="Alternar tema">${ICON_THEME}</button>
 </header>`;
 }
 

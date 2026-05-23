@@ -7,6 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
+const { renderSpecContent } = require('./render-spec');
 
 const ROOT = __dirname;
 const DOCS = path.join(ROOT, 'docs');
@@ -44,10 +45,10 @@ const apps = [
   { key: 'listaCompras', group: 'habit', port: null, desc: 'Plano alimentar via PDF + LLM, lista de compras com conversão automática e meal-prep.' },
 ];
 
-// Carrega specs dos apps HealthCheck (specs embutidas em <script id="openapi-spec">)
+// Carrega specs dos apps HealthCheck direto dos YAMLs
 for (const app of apps) {
-  const indexPath = path.join(DOCS, app.key, 'index.html');
-  app.spec = readSpecFromHtml(indexPath, 'openapi-spec');
+  const yamlPath = path.join(DOCS, app.key, 'openapi.yaml');
+  app.spec = readSpecFromYaml(yamlPath);
 }
 
 // Catálogo do monorepo Nutricao360 (specs em arquivos openapi.yaml)
@@ -82,12 +83,19 @@ const csatSpec = readSpecFromHtml(path.join(CSAT, 'docs.html'), 'spec');
 const apiMd = fs.readFileSync(path.join(DOCS, 'API.md'), 'utf8');
 const nutri360Md = fs.readFileSync(path.join(N360, 'API.md'), 'utf8');
 
-// Serializa dados para o site
+// Pré-renderiza o HTML "estilo overview" para cada spec (sem Swagger UI).
+// Embutimos só o HTML — a spec crua não precisa mais ir pro cliente.
 const siteData = {
   apps: apps.map(({ key, label, group, port, desc, spec }) => ({
-    key, label: label || key, group, port, desc, spec,
+    key, label: label || key, group, port, desc,
+    title: (spec.info && spec.info.title) || key,
+    contentHtml: renderSpecContent(spec),
   })),
-  csat: { key: 'csat', spec: csatSpec },
+  csat: {
+    key: 'csat',
+    title: (csatSpec.info && csatSpec.info.title) || 'CSAT Plano Alimentar API',
+    contentHtml: renderSpecContent(csatSpec),
+  },
   overview: apiMd,
   nutri360Overview: nutri360Md,
 };
@@ -106,10 +114,9 @@ const html = `<!DOCTYPE html>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Documentação</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%95%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://rsms.me/" />
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
   <style>
 ${cofounderCss}
 
@@ -166,9 +173,7 @@ ${cofounderCss}
     </nav>
     <div class="cf-spacer"></div>
     <input id="search" class="cf-search" type="search" placeholder="Buscar app…" />
-    <button class="cf-icon" id="themeToggle" aria-label="Alternar tema">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-    </button>
+    <button class="cf-icon" id="themeToggle" aria-label="Alternar tema"></button>
   </header>
 
   <div class="cf-backdrop" id="backdrop"></div>
@@ -224,21 +229,13 @@ ${cofounderCss}
         <article class="cf-content" id="n360OverviewMd"></article>
       </section>
 
-      <!-- view: swagger (reutilizado para cada app) -->
-      <section class="view" id="view-swagger">
-        <section class="cf-ribbon">
-          <h2 class="cf-ribbon-title" id="ribbonTitle">—</h2>
-          <div class="cf-meta" id="ribbonMeta"></div>
-        </section>
-        <section class="cf-swagger">
-          <div id="swagger-ui"></div>
-        </section>
+      <!-- view: spec (reutilizada para cada app) -->
+      <section class="view" id="view-spec">
+        <article class="cf-content" id="specContent"></article>
       </section>
     </main>
   </div>
 
-  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked@11/marked.min.js"></script>
 
   <script id="site-data" type="application/json">${dataJson}</script>
@@ -248,15 +245,25 @@ ${cofounderCss}
     const csat = data.csat;
 
     // ---------- THEME ----------
-    const savedTheme = localStorage.getItem('cf-theme') || localStorage.getItem('theme') || 'light';
+    const SVG_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    const SVG_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+    const themeBtn = document.getElementById('themeToggle');
+    function paintThemeIcon() {
+      const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      themeBtn.innerHTML = theme === 'dark' ? SVG_MOON : SVG_SUN;
+      const label = theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro';
+      themeBtn.setAttribute('aria-label', label);
+      themeBtn.setAttribute('title', label);
+    }
+    const savedTheme = localStorage.getItem('cf-theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
-    document.getElementById('themeToggle').addEventListener('click', () => {
+    paintThemeIcon();
+    themeBtn.addEventListener('click', () => {
       const cur = document.documentElement.getAttribute('data-theme');
       const next = cur === 'dark' ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('cf-theme', next);
-      // recarrega swagger se estiver visível, para reaplicar variáveis
-      if (currentRoute && currentRoute !== 'overview' && currentRoute !== 'n360-overview') renderSwagger(currentRoute);
+      paintThemeIcon();
     });
 
     // ---------- SIDEBAR (mobile drawer) ----------
@@ -346,13 +353,13 @@ ${cofounderCss}
       const isN360Overview = route === 'n360-overview';
       document.getElementById('view-overview').classList.toggle('is-active', isOverview);
       document.getElementById('view-n360-overview').classList.toggle('is-active', isN360Overview);
-      document.getElementById('view-swagger').classList.toggle('is-active', !isOverview && !isN360Overview);
+      document.getElementById('view-spec').classList.toggle('is-active', !isOverview && !isN360Overview);
       if (isOverview) {
         document.title = 'HealthCheck Apps · Documentação';
       } else if (isN360Overview) {
         document.title = 'Nutricao360 · Documentação';
       } else {
-        renderSwagger(route);
+        renderSpec(route);
       }
       // fecha drawer mobile
       sidebar.classList.remove('is-open');
@@ -366,46 +373,42 @@ ${cofounderCss}
     }
 
     function specFor(route) {
-      if (route === 'csat') return { spec: csat.spec, title: 'CSAT Plano Alimentar API', port: null };
-      const a = apps.find(x => x.key === route);
-      return a ? { spec: a.spec, title: a.label + ' API', port: a.port } : null;
+      if (route === 'csat') return csat;
+      return apps.find(x => x.key === route) || null;
     }
 
-    function renderSwagger(route) {
+    function renderSpec(route) {
       const info = specFor(route);
       if (!info) { setRoute('overview'); return; }
-      document.title = info.title + '';
-      document.getElementById('ribbonTitle').textContent = info.title;
-      const servers = info.spec.servers || [];
-      const meta = document.getElementById('ribbonMeta');
-      meta.innerHTML = '';
-      if (info.port) {
-        const b = document.createElement('span'); b.className = 'cf-badge';
-        b.textContent = 'porta ' + info.port; meta.appendChild(b);
-      }
-      const ver = document.createElement('span'); ver.className = 'cf-mono';
-      ver.textContent = 'OpenAPI ' + (info.spec.openapi || '3.0');
-      meta.appendChild(ver);
-      servers.slice(0, 2).forEach(s => {
-        const e = document.createElement('span'); e.className = 'cf-mono';
-        e.textContent = s.url;
-        meta.appendChild(e);
-      });
-      // mount swagger
-      window.ui = SwaggerUIBundle({
-        spec: info.spec,
-        dom_id: '#swagger-ui',
-        deepLinking: false,
-        presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
-        layout: 'StandaloneLayout',
-        docExpansion: 'list',
-        defaultModelsExpandDepth: 1,
-        defaultModelExpandDepth: 1,
-        filter: true,
-        persistAuthorization: true,
-        tryItOutEnabled: route === 'csat',
-      });
+      document.title = info.title;
+      document.getElementById('specContent').innerHTML = info.contentHtml;
     }
+
+    // ---------- tabs Example/Schema ----------
+    document.body.addEventListener('click', (e) => {
+      const tab = e.target.closest && e.target.closest('.cf-tab[data-tab-name]');
+      if (!tab) return;
+      e.preventDefault();
+      const container = tab.closest('[data-tabs]');
+      if (!container) return;
+      const name = tab.getAttribute('data-tab-name');
+      container.querySelectorAll('.cf-tab').forEach(t => {
+        t.classList.toggle('is-active', t.getAttribute('data-tab-name') === name);
+      });
+      container.querySelectorAll('.cf-tab-panel').forEach(p => {
+        p.classList.toggle('is-active', p.getAttribute('data-panel-name') === name);
+      });
+    });
+
+    // ---------- collapse de endpoints/schemas ----------
+    document.body.addEventListener('click', (e) => {
+      if (e.target.closest('a')) return;
+      if (e.target.closest('button') && !e.target.closest('[data-collapse-toggle]')) return;
+      const head = e.target.closest('[data-collapse-toggle]');
+      if (!head) return;
+      const card = head.parentNode;
+      if (card) card.classList.toggle('is-collapsed');
+    });
 
     // ---------- SEARCH ----------
     document.getElementById('search').addEventListener('input', (e) => {

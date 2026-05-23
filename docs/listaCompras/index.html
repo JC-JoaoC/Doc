@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>listaCompras API</title>
+  <title>listaCompras API · Documentação</title>
+  <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://rsms.me/" />
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
   <link rel="stylesheet" href="../../assets/cofounder.css" />
 </head>
-
 <body>
 
 <header class="cf-topbar">
@@ -26,18 +24,23 @@
     <a href="../../docs-csat/docs.html">CSAT</a>
   </nav>
   <div class="cf-spacer"></div>
-  <input id="cfSearch" class="cf-search" type="search" placeholder="Buscar app…" />
-  <button class="cf-icon" id="cfThemeToggle" aria-label="Alternar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>
+  <input id="cfSearch" class="cf-search" type="search" placeholder="Buscar…" />
+  <button class="cf-icon" id="cfThemeToggle" aria-label="Alternar tema"></button>
 </header>
 
 <div class="cf-backdrop"></div>
 
 <div class="cf-layout">
 <aside class="cf-sidebar">
-    <div class="cf-group">Geral</div>
-    <a class="cf-nav-item" href="../index.html">Visão geral<span class="cf-tag">hub</span></a>
-    <a class="cf-nav-item" href="../API.md">API.md<span class="cf-tag">md</span></a>
-    <a class="cf-nav-item" href="../global.html">Spec global<span class="cf-tag">redoc</span></a>
+    <div class="cf-group">Esta API</div>
+    <a class="cf-nav-item" href="#tag-Auth%20(REST)">Auth (REST)<span class="cf-tag">1</span></a>
+    <a class="cf-nav-item" href="#tag-Webhooks">Webhooks<span class="cf-tag">2</span></a>
+    <a class="cf-nav-item" href="#tag-tRPC%20-%20system">tRPC - system<span class="cf-tag">2</span></a>
+    <a class="cf-nav-item" href="#tag-tRPC%20-%20auth">tRPC - auth<span class="cf-tag">4</span></a>
+    <a class="cf-nav-item" href="#tag-tRPC%20-%20mealPlan">tRPC - mealPlan<span class="cf-tag">5</span></a>
+    <a class="cf-nav-item" href="#tag-tRPC%20-%20shoppingList">tRPC - shoppingList<span class="cf-tag">5</span></a>
+    <a class="cf-nav-item" href="#schemas">Schemas<span class="cf-tag">20</span></a>
+    <a class="cf-nav-item" href="#security">Autenticação<span class="cf-tag">1</span></a>
 
     <div class="cf-group">Análise clínica</div>
     <a class="cf-nav-item" href="../cardiocheck/">cardiocheck<span class="cf-tag">3002</span></a>
@@ -52,55 +55,3740 @@
     <div class="cf-group">Hábito e planejamento</div>
     <a class="cf-nav-item" href="../aquaflow/">aquaflow<span class="cf-tag">3001</span></a>
     <a class="cf-nav-item" href="../listaCompras/">listaCompras<span class="cf-tag">—</span></a>
+
+    <div class="cf-group">Geral</div>
+    <a class="cf-nav-item" href="../index.html">Visão geral<span class="cf-tag">hub</span></a>
+    <a class="cf-nav-item" href="../API.md">API.md<span class="cf-tag">md</span></a>
+    <a class="cf-nav-item" href="../global.html">Spec global<span class="cf-tag">redoc</span></a>
   </aside>
 
   <main class="cf-main">
-    <section class="cf-ribbon">
-      <h2 class="cf-ribbon-title" id="ribbonTitle">API</h2>
-      <div class="cf-meta" id="ribbonMeta"></div>
-    </section>
-    <section class="cf-swagger">
-      <div id="swagger-ui"></div>
-    </section>
-  </main>
-</div>
-  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-  <script id="openapi-spec"
-    type="application/json">{"openapi":"3.1.0","info":{"title":"listaCompras API","version":"1.0.0","description":"**listaCompras** — Planejamento nutricional e listas de compras.\n\nRecebe um PDF de plano alimentar, extrai sua estrutura via LLM (paciente,\nrefeições, opções, equivalentes, alimentos proibidos/riscados), permite ao\nusuário escolher os alimentos por categoria, gera uma lista de compras semanal\ncom conversão automática de quantidades (cozido → cru/in natura) e, opcionalmente,\norientações personalizadas de meal-prep.\n\n- **Tabelas do app:** `mealPlans`, `shoppingLists`\n- **Auth:** cookie `__session_lista` (JWT HS256, 1 ano)\n\nToda a API de negócio é exposta via tRPC v10 sob `/api/trpc/{router}.{procedure}`.\n"},"servers":[{"url":"http://localhost:3010","description":"Desenvolvimento"}],"tags":[{"name":"Auth (REST)"},{"name":"Webhooks"},{"name":"tRPC - system"},{"name":"tRPC - auth"},{"name":"tRPC - mealPlan","description":"Upload de PDF, extração via LLM e leitura de planos alimentares."},{"name":"tRPC - shoppingList","description":"Geração e histórico de listas de compras + orientações de meal-prep."}],"paths":{"/api/oauth/callback":{"get":{"tags":["Auth (REST)"],"summary":"Callback OAuth","parameters":[{"in":"query","name":"code","required":true,"schema":{"type":"string"}},{"in":"query","name":"state","required":true,"schema":{"type":"string"}}],"responses":{"302":{"description":"Redireciona para `/` com cookie de sessão."},"400":{"$ref":"#/components/responses/BadRequest"},"500":{"$ref":"#/components/responses/ServerError"}}}},"/api/webhook/guru":{"get":{"tags":["Webhooks"],"summary":"Healthcheck do webhook","responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"status":{"type":"string","example":"ok"},"service":{"type":"string","example":"guru-webhook"}}}}}}}},"post":{"tags":["Webhooks"],"summary":"Evento de assinatura Guru","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/GuruWebhookPayload"}}}},"responses":{"200":{"$ref":"#/components/responses/WebhookOk"},"401":{"$ref":"#/components/responses/Unauthorized"},"500":{"$ref":"#/components/responses/ServerError"}}}},"/api/trpc/system.health":{"get":{"tags":["tRPC - system"],"summary":"system.health (query, public)","parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"$ref":"#/components/responses/TrpcOk"}}}},"/api/trpc/system.notifyOwner":{"post":{"tags":["tRPC - system"],"summary":"system.notifyOwner (mutation, admin)","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"title":{"type":"string"},"content":{"type":"string"}}}}}},"responses":{"200":{"$ref":"#/components/responses/TrpcOk"},"401":{"$ref":"#/components/responses/Unauthorized"},"403":{"$ref":"#/components/responses/Forbidden"}}}},"/api/trpc/auth.me":{"get":{"tags":["tRPC - auth"],"summary":"auth.me (query, public)","parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"oneOf":[{"$ref":"#/components/schemas/User"},{"type":"null"}]}}}}}]}}}}}}},"/api/trpc/auth.logout":{"post":{"tags":["tRPC - auth"],"summary":"auth.logout (mutation, public)","responses":{"200":{"$ref":"#/components/responses/SuccessTrue"}}}},"/api/trpc/auth.emailAccess":{"post":{"tags":["tRPC - auth"],"summary":"auth.emailAccess (mutation, public)","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["email"],"properties":{"email":{"type":"string","format":"email"}}}}}},"responses":{"200":{"$ref":"#/components/responses/EmailAccessOk"}}}},"/api/trpc/auth.checkAccess":{"get":{"tags":["tRPC - auth"],"summary":"auth.checkAccess (query, public)","parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"$ref":"#/components/responses/TrpcOk"}}}},"/api/trpc/mealPlan.upload":{"post":{"tags":["tRPC - mealPlan"],"summary":"mealPlan.upload (mutation, protected)","description":"Recebe um PDF em base64. Usa LLM com vision para extrair a estrutura\ndo plano alimentar (paciente, refeições, opções, equivalentes, proibidos,\nriscados). Persiste em `mealPlans` e devolve o `planId` + os dados.\n","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["fileBase64","fileName"],"properties":{"fileBase64":{"type":"string","description":"PDF codificado em base64."},"fileName":{"type":"string"}}}}}},"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"object","properties":{"planId":{"type":"integer"},"extractedData":{"$ref":"#/components/schemas/ExtractedPlanData"}}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/mealPlan.get":{"get":{"tags":["tRPC - mealPlan"],"summary":"mealPlan.get (query, protected)","description":"Recupera um plano por `id` (valida posse).","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"$ref":"#/components/schemas/MealPlan"}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"},"404":{"description":"Plano não encontrado ou não pertence ao usuário."}}}},"/api/trpc/mealPlan.getCategories":{"get":{"tags":["tRPC - mealPlan"],"summary":"mealPlan.getCategories (query, protected)","description":"Categorias de alimentos do plano (já excluindo proibidos/riscados) para\no usuário escolher. Acompanha `minRecommended`/`maxRecommended` (varia por\ntipo — proteínas 2–5, carbos 2–4, vegetais 3–8 etc.).\n","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/CategoryForSelection"}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/mealPlan.getPlanFoods":{"get":{"tags":["tRPC - mealPlan"],"summary":"mealPlan.getPlanFoods (query, protected)","description":"Alimentos do plano agrupados por categoria, com sugestões de substituição\nnutricional, fator de conversão (cozido→cru) e quantidades semanais\ncalculadas.\n","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/PlanCategoryWithFoods"}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/mealPlan.list":{"get":{"tags":["tRPC - mealPlan"],"summary":"mealPlan.list (query, protected)","description":"Histórico de planos do usuário (ordem decrescente por data).","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/MealPlan"}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/shoppingList.generate":{"post":{"tags":["tRPC - shoppingList"],"summary":"shoppingList.generate (mutation, protected)","description":"Gera lista de compras semanal a partir dos alimentos escolhidos por\ncategoria. Aplica fatores de conversão (carnes ×2, carbos ÷2,\nleguminosas ÷2, tubérculos ×0.85–0.90, vegetais \"à vontade\"), agrupa\nitens, filtra suplementos/água, deduplica e arredonda para unidades\npráticas (kg, g, unidades).\n","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["mealPlanId","selectedFoods"],"properties":{"mealPlanId":{"type":"integer"},"selectedFoods":{"type":"object","description":"Mapa `categoryName → string[]` com os alimentos escolhidos.","additionalProperties":{"type":"array","items":{"type":"string"}}}}}}}},"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"object","properties":{"listId":{"type":"integer"},"generatedList":{"$ref":"#/components/schemas/GeneratedShoppingList"}}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/shoppingList.generateFromConfirmed":{"post":{"tags":["tRPC - shoppingList"],"summary":"shoppingList.generateFromConfirmed (mutation, protected)","description":"Variante de `generate` que aceita um array de alimentos já confirmados\n(incluindo substitutos com referência ao alimento original).\n","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["mealPlanId","confirmedFoods"],"properties":{"mealPlanId":{"type":"integer"},"confirmedFoods":{"type":"array","items":{"$ref":"#/components/schemas/ConfirmedFoodItem"}}}}}}},"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"object","properties":{"listId":{"type":"integer"},"generatedList":{"$ref":"#/components/schemas/GeneratedShoppingList"}}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/shoppingList.get":{"get":{"tags":["tRPC - shoppingList"],"summary":"shoppingList.get (query, protected)","description":"Recupera uma lista por `id` (valida posse).","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"$ref":"#/components/schemas/ShoppingList"}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"},"404":{"description":"Lista não encontrada ou não pertence ao usuário."}}}},"/api/trpc/shoppingList.history":{"get":{"tags":["tRPC - shoppingList"],"summary":"shoppingList.history (query, protected)","description":"Histórico de listas (ordem decrescente por data).","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/ShoppingList"}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/shoppingList.generateOrientations":{"post":{"tags":["tRPC - shoppingList"],"summary":"shoppingList.generateOrientations (mutation, protected)","description":"Gera 5 seções de orientações personalizadas de meal-prep (rotina,\npreparo semanal, porcionamento, estratégia da semana, o que congelar)\nbaseadas na lista e no plano. Resultado persistido em `shoppingLists.orientations`.\n","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["listId","mealPlanId"],"properties":{"listId":{"type":"integer"},"mealPlanId":{"type":"integer"}}}}}},"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"$ref":"#/components/schemas/GeneratedOrientations"}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}}},"components":{"securitySchemes":{"sessionCookie":{"type":"apiKey","in":"cookie","name":"__session_lista"}},"parameters":{"TrpcInput":{"in":"query","name":"input","schema":{"type":"string"},"description":"Input do procedure serializado como JSON URL-encoded (tRPC v10)."}},"responses":{"BadRequest":{"description":"Parâmetros inválidos.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"Unauthorized":{"description":"Não autenticado.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"Forbidden":{"description":"Requer role de admin.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"ServerError":{"description":"Erro interno.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"TrpcOk":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TrpcResult"}}}},"WebhookOk":{"description":"Evento aceito.","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}}}}}},"EmailAccessOk":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"oneOf":[{"type":"object","properties":{"success":{"const":true},"user":{"$ref":"#/components/schemas/User"}}},{"type":"object","properties":{"success":{"const":false},"error":{"type":"string"}}}]}}}}}]}}}},"SuccessTrue":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"object","properties":{"success":{"type":"boolean","example":true}}}}}}}]}}}}},"schemas":{"Error":{"type":"object","required":["error"],"properties":{"error":{"type":"string"}}},"User":{"type":"object","required":["id","openId","role","createdAt","updatedAt","lastSignedIn"],"properties":{"id":{"type":"integer"},"openId":{"type":"string"},"name":{"type":"string","nullable":true},"email":{"type":"string","format":"email","nullable":true},"loginMethod":{"type":"string","nullable":true},"role":{"type":"string","enum":["user","admin"]},"createdAt":{"type":"string","format":"date-time"},"updatedAt":{"type":"string","format":"date-time"},"lastSignedIn":{"type":"string","format":"date-time"}}},"TrpcResult":{"type":"object","properties":{"result":{"type":"object","properties":{"data":{}}}}},"GuruWebhookPayload":{"type":"object","required":["api_token"],"properties":{"api_token":{"type":"string"},"id":{"type":"string"},"event":{"type":"string"},"status":{"type":"string"},"contact":{"type":"object","properties":{"email":{"type":"string","format":"email"},"name":{"type":"string"}}},"product":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}}}},"FoodItem":{"type":"object","required":["name","quantity","unit"],"properties":{"name":{"type":"string"},"quantity":{"type":"string","description":"Texto livre (ex.: \"100\", \"1/2\")."},"unit":{"type":"string","example":"g"},"grams":{"type":"number","nullable":true},"isStriked":{"type":"boolean"}}},"MealOption":{"type":"object","properties":{"foods":{"type":"array","items":{"$ref":"#/components/schemas/FoodItem"}},"preparation":{"type":"string"}}},"Meal":{"type":"object","properties":{"name":{"type":"string","example":"Almoço"},"frequency":{"type":"string"},"options":{"type":"array","items":{"$ref":"#/components/schemas/MealOption"}}}},"EquivalentCategory":{"type":"object","properties":{"name":{"type":"string"},"items":{"type":"array","items":{"type":"string"}}}},"ExtractedPlanData":{"type":"object","properties":{"patientName":{"type":"string"},"meals":{"type":"array","items":{"$ref":"#/components/schemas/Meal"}},"equivalents":{"type":"array","items":{"$ref":"#/components/schemas/EquivalentCategory"}},"allowedSeasonings":{"type":"array","items":{"type":"string"}},"forbiddenFoods":{"type":"array","items":{"type":"string"}},"strikedFoods":{"type":"array","items":{"type":"string"}}}},"CategoryForSelection":{"type":"object","properties":{"categoryName":{"type":"string"},"items":{"type":"array","items":{"type":"string"}},"minRecommended":{"type":"integer"},"maxRecommended":{"type":"integer"}}},"SubstitutionSuggestion":{"type":"object","properties":{"name":{"type":"string"},"category":{"type":"string"}}},"PlanFoodItem":{"type":"object","properties":{"name":{"type":"string"},"category":{"type":"string"},"meals":{"type":"array","items":{"type":"string"}},"suggestions":{"type":"array","items":{"$ref":"#/components/schemas/SubstitutionSuggestion"}},"weeklyQuantity":{"type":"string","example":"1.2 kg"},"unit":{"type":"string"},"dailyGrams":{"type":"number"},"mealCount":{"type":"integer"},"conversionFactor":{"type":"number"},"useUnits":{"type":"boolean"},"dailyUnits":{"type":"number"}}},"PlanCategoryWithFoods":{"type":"object","properties":{"categoryName":{"type":"string"},"foods":{"type":"array","items":{"$ref":"#/components/schemas/PlanFoodItem"}}}},"ConfirmedFoodItem":{"type":"object","required":["name","category","isSubstitute"],"properties":{"name":{"type":"string"},"category":{"type":"string"},"isSubstitute":{"type":"boolean"},"replacesFood":{"type":"string"},"meals":{"type":"array","items":{"type":"string"}}}},"ShoppingItem":{"type":"object","properties":{"name":{"type":"string"},"weeklyQuantity":{"type":"string"},"unit":{"type":"string"},"category":{"type":"string"},"notes":{"type":"string"},"isSubstitution":{"type":"boolean"},"substitutesFood":{"type":"string"},"substitutionMeals":{"type":"array","items":{"type":"string"}}}},"GeneratedShoppingList":{"type":"object","properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/ShoppingItem"}},"generatedAt":{"type":"integer","description":"Timestamp em ms."}}},"OrientationSection":{"type":"object","properties":{"title":{"type":"string"},"content":{"type":"string"}}},"GeneratedOrientations":{"type":"object","properties":{"sections":{"type":"array","items":{"$ref":"#/components/schemas/OrientationSection"}},"generatedAt":{"type":"integer"}}},"MealPlan":{"type":"object","properties":{"id":{"type":"integer"},"userId":{"type":"integer"},"patientName":{"type":"string","nullable":true},"pdfUrl":{"type":"string","nullable":true},"extractedData":{"allOf":[{"$ref":"#/components/schemas/ExtractedPlanData"},{"nullable":true}]},"createdAt":{"type":"string","format":"date-time"}}},"ShoppingList":{"type":"object","properties":{"id":{"type":"integer"},"userId":{"type":"integer"},"mealPlanId":{"type":"integer"},"selectedFoods":{"type":"object","additionalProperties":{"type":"array","items":{"type":"string"}},"nullable":true},"generatedList":{"allOf":[{"$ref":"#/components/schemas/GeneratedShoppingList"},{"nullable":true}]},"orientations":{"allOf":[{"$ref":"#/components/schemas/GeneratedOrientations"},{"nullable":true}]},"name":{"type":"string","nullable":true},"createdAt":{"type":"string","format":"date-time"}}}}}}</script>
-  <script>
-    const spec = JSON.parse(document.getElementById('openapi-spec').textContent);
-    // popula o ribbon com título/servers/versão a partir do spec
-    (function () {
-      try {
-        var info = spec && spec.info ? spec.info : {};
-        var t = document.getElementById('ribbonTitle');
-        if (t) t.textContent = info.title || 'API';
-        var meta = document.getElementById('ribbonMeta');
-        if (meta) {
-          (spec.servers || []).slice(0, 2).forEach(function (s) {
-            var e = document.createElement('span'); e.className = 'cf-mono';
-            e.textContent = s.url; meta.appendChild(e);
-          });
-          var v = document.createElement('span'); v.className = 'cf-mono';
-          v.textContent = 'OpenAPI ' + (spec.openapi || '3.0'); meta.appendChild(v);
-        }
-        if (info.title) document.title = info.title + ' · Docs';
-      } catch (e) {}
-    })();
+    <article class="cf-content">
 
     
+    <p class="cf-eyebrow">API</p>
+    <h1>listaCompras API</h1>
+    <p class="cf-lede"><strong>listaCompras</strong> — Planejamento nutricional e listas de compras.</p>
+    <div class="cf-info-desc"><p>Recebe um PDF de plano alimentar, extrai sua estrutura via LLM (paciente, refeições, opções, equivalentes, alimentos proibidos/riscados), permite ao usuário escolher os alimentos por categoria, gera uma lista de compras semanal com conversão automática de quantidades (cozido → cru/in natura) e, opcionalmente, orientações personalizadas de meal-prep.</p>
+<ul><li><strong>Tabelas do app:</strong> <code>mealPlans</code>, <code>shoppingLists</code></li><li><strong>Auth:</strong> cookie <code>__session_lista</code> (JWT HS256, 1 ano)</li></ul>
+<p>Toda a API de negócio é exposta via tRPC v10 sob <code>/api/trpc/{router}.{procedure}</code>.</p></div>
+    
+  
+    
+    <section class="cf-spec-section" id="security">
+      <h2>Autenticação</h2>
+      
+      <article class="cf-schema" id="sec-sessionCookie">
+        <header class="cf-endpoint-head">
+          <span class="cf-method" style="background:#7c7c7c">AUTH</span>
+          <code class="cf-path">sessionCookie</code>
+        </header>
+        
+        <p class="cf-meta-line">tipo: <code>apiKey</code> • em: <code>cookie</code> • param: <code>__session_lista</code></p>
+      </article>
+    </section>
+    
+    <section class="cf-spec-section" id="tag-Auth%20(REST)">
+      <h2>Auth (REST)</h2>
+      
+      
+    <article class="cf-endpoint is-collapsed" id="op-get-api-oauth-callback">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/oauth/callback</code>
+        <span class="cf-endpoint-summary-inline">Callback OAuth</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>code</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>state</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-3xx">302</code>
+          <span class="cf-response-desc"><p>Redireciona para <code>/</code> com cookie de sessão.</p></span>
+        </div>
+        
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">400</code>
+          <span class="cf-response-desc"><p>Parâmetros inválidos.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-5xx">500</code>
+          <span class="cf-response-desc"><p>Erro interno.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    <section class="cf-spec-section" id="tag-Webhooks">
+      <h2>Webhooks</h2>
+      
+      
+    <article class="cf-endpoint is-collapsed" id="op-get-api-webhook-guru">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/webhook/guru</code>
+        <span class="cf-endpoint-summary-inline">Healthcheck do webhook</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;status&quot;: &quot;ok&quot;,
+  &quot;service&quot;: &quot;guru-webhook&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>status</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><div class="cf-meta-line">ex.: <code>&quot;ok&quot;</code></div></td>
+      </tr>
+      <tr>
+        <td><code>service</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><div class="cf-meta-line">ex.: <code>&quot;guru-webhook&quot;</code></div></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-webhook-guru">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/webhook/guru</code>
+        <span class="cf-endpoint-summary-inline">Evento de assinatura Guru</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-GuruWebhookPayload"><code>GuruWebhookPayload</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;api_token&quot;: &quot;string&quot;,
+  &quot;id&quot;: &quot;string&quot;,
+  &quot;event&quot;: &quot;string&quot;,
+  &quot;status&quot;: &quot;string&quot;,
+  &quot;contact&quot;: {
+    &quot;email&quot;: &quot;user@example.com&quot;,
+    &quot;name&quot;: &quot;string&quot;
+  },
+  &quot;product&quot;: {
+    &quot;id&quot;: &quot;string&quot;,
+    &quot;name&quot;: &quot;string&quot;
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>api_token</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>event</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>status</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>contact</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>product</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>Evento aceito.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;success&quot;: true,
+  &quot;message&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>success</code></td>
+        <td><code>boolean</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>message</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-5xx">500</code>
+          <span class="cf-response-desc"><p>Erro interno.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    <section class="cf-spec-section" id="tag-tRPC%20-%20system">
+      <h2>tRPC - system</h2>
+      
+      
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-system-health">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/system.health</code>
+        <span class="cf-endpoint-summary-inline">system.health (query, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: null
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-system-notifyOwner">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/system.notifyOwner</code>
+        <span class="cf-endpoint-summary-inline">system.notifyOwner (mutation, admin)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;title&quot;: &quot;string&quot;,
+  &quot;content&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>title</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>content</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: null
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">403</code>
+          <span class="cf-response-desc"><p>Requer role de admin.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    <section class="cf-spec-section" id="tag-tRPC%20-%20auth">
+      <h2>tRPC - auth</h2>
+      
+      
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-auth-me">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/auth.me</code>
+        <span class="cf-endpoint-summary-inline">auth.me (query, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;id&quot;: 0,
+      &quot;openId&quot;: &quot;string&quot;,
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;email&quot;: &quot;user@example.com&quot;,
+      &quot;loginMethod&quot;: &quot;string&quot;,
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+      &quot;updatedAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+      &quot;lastSignedIn&quot;: &quot;2025-01-01T00:00:00Z&quot;
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-auth-logout">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/auth.logout</code>
+        <span class="cf-endpoint-summary-inline">auth.logout (mutation, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;success&quot;: true
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-auth-emailAccess">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/auth.emailAccess</code>
+        <span class="cf-endpoint-summary-inline">auth.emailAccess (mutation, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;email&quot;: &quot;user@example.com&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>email</code></td>
+        <td><code>string (email)</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;success&quot;: true,
+      &quot;user&quot;: {
+        &quot;id&quot;: 0,
+        &quot;openId&quot;: &quot;string&quot;,
+        &quot;name&quot;: &quot;string&quot;,
+        &quot;email&quot;: &quot;user@example.com&quot;,
+        &quot;loginMethod&quot;: &quot;string&quot;,
+        &quot;role&quot;: &quot;user&quot;,
+        &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+        &quot;updatedAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+        &quot;lastSignedIn&quot;: &quot;2025-01-01T00:00:00Z&quot;
+      }
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-auth-checkAccess">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/auth.checkAccess</code>
+        <span class="cf-endpoint-summary-inline">auth.checkAccess (query, public)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: null
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    <section class="cf-spec-section" id="tag-tRPC%20-%20mealPlan">
+      <h2>tRPC - mealPlan</h2>
+      <p>Upload de PDF, extração via LLM e leitura de planos alimentares.</p>
+      
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-mealPlan-upload">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/mealPlan.upload</code>
+        <span class="cf-endpoint-summary-inline">mealPlan.upload (mutation, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Recebe um PDF em base64. Usa LLM com vision para extrair a estrutura do plano alimentar (paciente, refeições, opções, equivalentes, proibidos, riscados). Persiste em <code>mealPlans</code> e devolve o <code>planId</code> + os dados.</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;fileBase64&quot;: &quot;string&quot;,
+  &quot;fileName&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>fileBase64</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td><p>PDF codificado em base64.</p></td>
+      </tr>
+      <tr>
+        <td><code>fileName</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;planId&quot;: 0,
+      &quot;extractedData&quot;: {
+        &quot;patientName&quot;: &quot;string&quot;,
+        &quot;meals&quot;: [
+          {
+            &quot;name&quot;: &quot;Almoço&quot;,
+            &quot;frequency&quot;: &quot;string&quot;,
+            &quot;options&quot;: [
+              {
+                &quot;foods&quot;: [
+                  {
+                    &quot;name&quot;: &quot;string&quot;,
+                    &quot;quantity&quot;: &quot;string&quot;,
+                    &quot;unit&quot;: &quot;g&quot;,
+                    &quot;grams&quot;: 0,
+                    &quot;isStriked&quot;: true
+                  }
+                ],
+                &quot;preparation&quot;: &quot;string&quot;
+              }
+            ]
+          }
+        ],
+        &quot;equivalents&quot;: [
+          {
+            &quot;name&quot;: &quot;string&quot;,
+            &quot;items&quot;: [
+              &quot;string&quot;
+            ]
+          }
+        ],
+        &quot;allowedSeasonings&quot;: [
+          &quot;string&quot;
+        ],
+        &quot;forbiddenFoods&quot;: [
+          &quot;string&quot;
+        ],
+        &quot;strikedFoods&quot;: [
+          &quot;string&quot;
+        ]
+      }
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-mealPlan-get">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/mealPlan.get</code>
+        <span class="cf-endpoint-summary-inline">mealPlan.get (query, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Recupera um plano por <code>id</code> (valida posse).</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;id&quot;: 0,
+      &quot;userId&quot;: 0,
+      &quot;patientName&quot;: &quot;string&quot;,
+      &quot;pdfUrl&quot;: &quot;string&quot;,
+      &quot;extractedData&quot;: {
+        &quot;patientName&quot;: &quot;string&quot;,
+        &quot;meals&quot;: [
+          {
+            &quot;name&quot;: &quot;Almoço&quot;,
+            &quot;frequency&quot;: &quot;string&quot;,
+            &quot;options&quot;: [
+              {
+                &quot;foods&quot;: [
+                  {
+                    &quot;name&quot;: &quot;string&quot;,
+                    &quot;quantity&quot;: &quot;string&quot;,
+                    &quot;unit&quot;: &quot;g&quot;,
+                    &quot;grams&quot;: 0,
+                    &quot;isStriked&quot;: true
+                  }
+                ],
+                &quot;preparation&quot;: &quot;string&quot;
+              }
+            ]
+          }
+        ],
+        &quot;equivalents&quot;: [
+          {
+            &quot;name&quot;: &quot;string&quot;,
+            &quot;items&quot;: [
+              &quot;string&quot;
+            ]
+          }
+        ],
+        &quot;allowedSeasonings&quot;: [
+          &quot;string&quot;
+        ],
+        &quot;forbiddenFoods&quot;: [
+          &quot;string&quot;
+        ],
+        &quot;strikedFoods&quot;: [
+          &quot;string&quot;
+        ]
+      },
+      &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">404</code>
+          <span class="cf-response-desc"><p>Plano não encontrado ou não pertence ao usuário.</p></span>
+        </div>
+        
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-mealPlan-getCategories">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/mealPlan.getCategories</code>
+        <span class="cf-endpoint-summary-inline">mealPlan.getCategories (query, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Categorias de alimentos do plano (já excluindo proibidos/riscados) para o usuário escolher. Acompanha <code>minRecommended</code>/<code>maxRecommended</code> (varia por tipo — proteínas 2–5, carbos 2–4, vegetais 3–8 etc.).</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: [
+      {
+        &quot;categoryName&quot;: &quot;string&quot;,
+        &quot;items&quot;: [
+          &quot;string&quot;
+        ],
+        &quot;minRecommended&quot;: 0,
+        &quot;maxRecommended&quot;: 0
+      }
+    ]
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-mealPlan-getPlanFoods">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/mealPlan.getPlanFoods</code>
+        <span class="cf-endpoint-summary-inline">mealPlan.getPlanFoods (query, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Alimentos do plano agrupados por categoria, com sugestões de substituição nutricional, fator de conversão (cozido→cru) e quantidades semanais calculadas.</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: [
+      {
+        &quot;categoryName&quot;: &quot;string&quot;,
+        &quot;foods&quot;: [
+          {
+            &quot;name&quot;: &quot;string&quot;,
+            &quot;category&quot;: &quot;string&quot;,
+            &quot;meals&quot;: [
+              &quot;string&quot;
+            ],
+            &quot;suggestions&quot;: [
+              {
+                &quot;name&quot;: &quot;string&quot;,
+                &quot;category&quot;: &quot;string&quot;
+              }
+            ],
+            &quot;weeklyQuantity&quot;: &quot;1.2 kg&quot;,
+            &quot;unit&quot;: &quot;string&quot;,
+            &quot;dailyGrams&quot;: 0,
+            &quot;mealCount&quot;: 0,
+            &quot;conversionFactor&quot;: 0,
+            &quot;useUnits&quot;: true,
+            &quot;dailyUnits&quot;: 0
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-mealPlan-list">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/mealPlan.list</code>
+        <span class="cf-endpoint-summary-inline">mealPlan.list (query, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Histórico de planos do usuário (ordem decrescente por data).</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: [
+      {
+        &quot;id&quot;: 0,
+        &quot;userId&quot;: 0,
+        &quot;patientName&quot;: &quot;string&quot;,
+        &quot;pdfUrl&quot;: &quot;string&quot;,
+        &quot;extractedData&quot;: {
+          &quot;patientName&quot;: &quot;string&quot;,
+          &quot;meals&quot;: [
+            {
+              &quot;name&quot;: &quot;Almoço&quot;,
+              &quot;frequency&quot;: &quot;string&quot;,
+              &quot;options&quot;: [
+                {
+                  &quot;foods&quot;: [
+                    {
+                      &quot;name&quot;: &quot;string&quot;,
+                      &quot;quantity&quot;: &quot;string&quot;,
+                      &quot;unit&quot;: &quot;g&quot;,
+                      &quot;grams&quot;: 0,
+                      &quot;isStriked&quot;: true
+                    }
+                  ],
+                  &quot;preparation&quot;: &quot;string&quot;
+                }
+              ]
+            }
+          ],
+          &quot;equivalents&quot;: [
+            {
+              &quot;name&quot;: &quot;string&quot;,
+              &quot;items&quot;: [
+                &quot;string&quot;
+              ]
+            }
+          ],
+          &quot;allowedSeasonings&quot;: [
+            &quot;string&quot;
+          ],
+          &quot;forbiddenFoods&quot;: [
+            &quot;string&quot;
+          ],
+          &quot;strikedFoods&quot;: [
+            &quot;string&quot;
+          ]
+        },
+        &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;
+      }
+    ]
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    <section class="cf-spec-section" id="tag-tRPC%20-%20shoppingList">
+      <h2>tRPC - shoppingList</h2>
+      <p>Geração e histórico de listas de compras + orientações de meal-prep.</p>
+      
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-shoppingList-generate">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/shoppingList.generate</code>
+        <span class="cf-endpoint-summary-inline">shoppingList.generate (mutation, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Gera lista de compras semanal a partir dos alimentos escolhidos por categoria. Aplica fatores de conversão (carnes ×2, carbos ÷2, leguminosas ÷2, tubérculos ×0.85–0.90, vegetais &quot;à vontade&quot;), agrupa itens, filtra suplementos/água, deduplica e arredonda para unidades práticas (kg, g, unidades).</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;mealPlanId&quot;: 0,
+  &quot;selectedFoods&quot;: {
+    &quot;&lt;chave&gt;&quot;: [
+      &quot;string&quot;
+    ]
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>mealPlanId</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>selectedFoods</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td><p>Mapa <code>categoryName → string[]</code> com os alimentos escolhidos.</p></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;listId&quot;: 0,
+      &quot;generatedList&quot;: {
+        &quot;items&quot;: [
+          {
+            &quot;name&quot;: &quot;string&quot;,
+            &quot;weeklyQuantity&quot;: &quot;string&quot;,
+            &quot;unit&quot;: &quot;string&quot;,
+            &quot;category&quot;: &quot;string&quot;,
+            &quot;notes&quot;: &quot;string&quot;,
+            &quot;isSubstitution&quot;: true,
+            &quot;substitutesFood&quot;: &quot;string&quot;,
+            &quot;substitutionMeals&quot;: [
+              &quot;string&quot;
+            ]
+          }
+        ],
+        &quot;generatedAt&quot;: 0
+      }
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-shoppingList-generateFromConfirmed">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/shoppingList.generateFromConfirmed</code>
+        <span class="cf-endpoint-summary-inline">shoppingList.generateFromConfirmed (mutation, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Variante de <code>generate</code> que aceita um array de alimentos já confirmados (incluindo substitutos com referência ao alimento original).</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;mealPlanId&quot;: 0,
+  &quot;confirmedFoods&quot;: [
+    {
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;category&quot;: &quot;string&quot;,
+      &quot;isSubstitute&quot;: true,
+      &quot;replacesFood&quot;: &quot;string&quot;,
+      &quot;meals&quot;: [
+        &quot;string&quot;
+      ]
+    }
+  ]
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>mealPlanId</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>confirmedFoods</code></td>
+        <td><code>array&lt;</code><a href="#schema-ConfirmedFoodItem"><code>ConfirmedFoodItem</code></a><code>&gt;</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;listId&quot;: 0,
+      &quot;generatedList&quot;: {
+        &quot;items&quot;: [
+          {
+            &quot;name&quot;: &quot;string&quot;,
+            &quot;weeklyQuantity&quot;: &quot;string&quot;,
+            &quot;unit&quot;: &quot;string&quot;,
+            &quot;category&quot;: &quot;string&quot;,
+            &quot;notes&quot;: &quot;string&quot;,
+            &quot;isSubstitution&quot;: true,
+            &quot;substitutesFood&quot;: &quot;string&quot;,
+            &quot;substitutionMeals&quot;: [
+              &quot;string&quot;
+            ]
+          }
+        ],
+        &quot;generatedAt&quot;: 0
+      }
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-shoppingList-get">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/shoppingList.get</code>
+        <span class="cf-endpoint-summary-inline">shoppingList.get (query, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Recupera uma lista por <code>id</code> (valida posse).</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;id&quot;: 0,
+      &quot;userId&quot;: 0,
+      &quot;mealPlanId&quot;: 0,
+      &quot;selectedFoods&quot;: {
+        &quot;&lt;chave&gt;&quot;: [
+          &quot;string&quot;
+        ]
+      },
+      &quot;generatedList&quot;: {
+        &quot;items&quot;: [
+          {
+            &quot;name&quot;: &quot;string&quot;,
+            &quot;weeklyQuantity&quot;: &quot;string&quot;,
+            &quot;unit&quot;: &quot;string&quot;,
+            &quot;category&quot;: &quot;string&quot;,
+            &quot;notes&quot;: &quot;string&quot;,
+            &quot;isSubstitution&quot;: true,
+            &quot;substitutesFood&quot;: &quot;string&quot;,
+            &quot;substitutionMeals&quot;: [
+              &quot;string&quot;
+            ]
+          }
+        ],
+        &quot;generatedAt&quot;: 0
+      },
+      &quot;orientations&quot;: {
+        &quot;sections&quot;: [
+          {
+            &quot;title&quot;: &quot;string&quot;,
+            &quot;content&quot;: &quot;string&quot;
+          }
+        ],
+        &quot;generatedAt&quot;: 0
+      },
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">404</code>
+          <span class="cf-response-desc"><p>Lista não encontrada ou não pertence ao usuário.</p></span>
+        </div>
+        
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-get-api-trpc-shoppingList-history">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#2050ff">GET</span>
+        <code class="cf-path">/api/trpc/shoppingList.history</code>
+        <span class="cf-endpoint-summary-inline">shoppingList.history (query, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Histórico de listas (ordem decrescente por data).</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+    <h4>Parâmetros</h4>
+    <table class="cf-spec-table">
+      <thead><tr><th>Nome</th><th>Em</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>input</code></td>
+        <td>query</td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Input do procedure serializado como JSON URL-encoded (tRPC v10).</p></td>
+      </tr></tbody>
+    </table>
+        
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: [
+      {
+        &quot;id&quot;: 0,
+        &quot;userId&quot;: 0,
+        &quot;mealPlanId&quot;: 0,
+        &quot;selectedFoods&quot;: {
+          &quot;&lt;chave&gt;&quot;: [
+            &quot;string&quot;
+          ]
+        },
+        &quot;generatedList&quot;: {
+          &quot;items&quot;: [
+            {
+              &quot;name&quot;: &quot;string&quot;,
+              &quot;weeklyQuantity&quot;: &quot;string&quot;,
+              &quot;unit&quot;: &quot;string&quot;,
+              &quot;category&quot;: &quot;string&quot;,
+              &quot;notes&quot;: &quot;string&quot;,
+              &quot;isSubstitution&quot;: true,
+              &quot;substitutesFood&quot;: &quot;string&quot;,
+              &quot;substitutionMeals&quot;: [
+                &quot;string&quot;
+              ]
+            }
+          ],
+          &quot;generatedAt&quot;: 0
+        },
+        &quot;orientations&quot;: {
+          &quot;sections&quot;: [
+            {
+              &quot;title&quot;: &quot;string&quot;,
+              &quot;content&quot;: &quot;string&quot;
+            }
+          ],
+          &quot;generatedAt&quot;: 0
+        },
+        &quot;name&quot;: &quot;string&quot;,
+        &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;
+      }
+    ]
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    <article class="cf-endpoint is-collapsed" id="op-post-api-trpc-shoppingList-generateOrientations">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#0a8a3a">POST</span>
+        <code class="cf-path">/api/trpc/shoppingList.generateOrientations</code>
+        <span class="cf-endpoint-summary-inline">shoppingList.generateOrientations (mutation, protected)</span>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        <div class="cf-endpoint-desc"><p>Gera 5 seções de orientações personalizadas de meal-prep (rotina, preparo semanal, porcionamento, estratégia da semana, o que congelar) baseadas na lista e no plano. Resultado persistido em <code>shoppingLists.orientations</code>.</p></div>
+        <p class="cf-endpoint-security">🔒 <strong>Auth:</strong> <a href="#sec-sessionCookie"><code>sessionCookie</code></a></p>
+        
+        
+    <h4>Request body <span class="cf-required">obrig.</span></h4>
+    
+    
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <code>object</code></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;listId&quot;: 0,
+  &quot;mealPlanId&quot;: 0
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>listId</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>mealPlanId</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+        
+    <h4>Respostas</h4>
+    <div class="cf-responses">
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-2xx">200</code>
+          <span class="cf-response-desc"><p>OK</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-TrpcResult"><code>TrpcResult</code></a> &amp; <em>—</em></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: {
+      &quot;sections&quot;: [
+        {
+          &quot;title&quot;: &quot;string&quot;,
+          &quot;content&quot;: &quot;string&quot;
+        }
+      ],
+      &quot;generatedAt&quot;: 0
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="cf-response">
+        <div class="cf-response-head">
+          <code class="cf-status-4xx">401</code>
+          <span class="cf-response-desc"><p>Não autenticado.</p></span>
+        </div>
+        
+      <div class="cf-body-type">
+        <p class="cf-meta-line"><code>application/json</code> → <a href="#schema-Error"><code>Error</code></a></p>
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+      </div></div>
+      </div>
+    </article>
+    </section>
+    
+    <section class="cf-spec-section" id="schemas">
+      <h2>Schemas</h2>
+      
+    <article class="cf-schema is-collapsed" id="schema-Error">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">Error</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;error&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>error</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-User">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">User</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;id&quot;: 0,
+  &quot;openId&quot;: &quot;string&quot;,
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;email&quot;: &quot;user@example.com&quot;,
+  &quot;loginMethod&quot;: &quot;string&quot;,
+  &quot;role&quot;: &quot;user&quot;,
+  &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+  &quot;updatedAt&quot;: &quot;2025-01-01T00:00:00Z&quot;,
+  &quot;lastSignedIn&quot;: &quot;2025-01-01T00:00:00Z&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>openId</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>email</code></td>
+        <td><code>string (email)</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>loginMethod</code></td>
+        <td><code>string</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>role</code></td>
+        <td><code>enum</code>(<code>&quot;user&quot;</code>, <code>&quot;admin&quot;</code>)</td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>createdAt</code></td>
+        <td><code>string (date-time)</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>updatedAt</code></td>
+        <td><code>string (date-time)</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>lastSignedIn</code></td>
+        <td><code>string (date-time)</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-TrpcResult">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">TrpcResult</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;result&quot;: {
+    &quot;data&quot;: null
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>result</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-GuruWebhookPayload">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">GuruWebhookPayload</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;api_token&quot;: &quot;string&quot;,
+  &quot;id&quot;: &quot;string&quot;,
+  &quot;event&quot;: &quot;string&quot;,
+  &quot;status&quot;: &quot;string&quot;,
+  &quot;contact&quot;: {
+    &quot;email&quot;: &quot;user@example.com&quot;,
+    &quot;name&quot;: &quot;string&quot;
+  },
+  &quot;product&quot;: {
+    &quot;id&quot;: &quot;string&quot;,
+    &quot;name&quot;: &quot;string&quot;
+  }
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>api_token</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>event</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>status</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>contact</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>product</code></td>
+        <td><code>object</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-FoodItem">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">FoodItem</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;quantity&quot;: &quot;string&quot;,
+  &quot;unit&quot;: &quot;g&quot;,
+  &quot;grams&quot;: 0,
+  &quot;isStriked&quot;: true
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>quantity</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td><p>Texto livre (ex.: &quot;100&quot;, &quot;1/2&quot;).</p></td>
+      </tr>
+      <tr>
+        <td><code>unit</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td><div class="cf-meta-line">ex.: <code>&quot;g&quot;</code></div></td>
+      </tr>
+      <tr>
+        <td><code>grams</code></td>
+        <td><code>number</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>isStriked</code></td>
+        <td><code>boolean</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-MealOption">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">MealOption</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;foods&quot;: [
+    {
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;quantity&quot;: &quot;string&quot;,
+      &quot;unit&quot;: &quot;g&quot;,
+      &quot;grams&quot;: 0,
+      &quot;isStriked&quot;: true
+    }
+  ],
+  &quot;preparation&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>foods</code></td>
+        <td><code>array&lt;</code><a href="#schema-FoodItem"><code>FoodItem</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>preparation</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-Meal">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">Meal</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;name&quot;: &quot;Almoço&quot;,
+  &quot;frequency&quot;: &quot;string&quot;,
+  &quot;options&quot;: [
+    {
+      &quot;foods&quot;: [
+        {
+          &quot;name&quot;: &quot;string&quot;,
+          &quot;quantity&quot;: &quot;string&quot;,
+          &quot;unit&quot;: &quot;g&quot;,
+          &quot;grams&quot;: 0,
+          &quot;isStriked&quot;: true
+        }
+      ],
+      &quot;preparation&quot;: &quot;string&quot;
+    }
+  ]
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><div class="cf-meta-line">ex.: <code>&quot;Almoço&quot;</code></div></td>
+      </tr>
+      <tr>
+        <td><code>frequency</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>options</code></td>
+        <td><code>array&lt;</code><a href="#schema-MealOption"><code>MealOption</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-EquivalentCategory">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">EquivalentCategory</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;items&quot;: [
+    &quot;string&quot;
+  ]
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>items</code></td>
+        <td><code>array&lt;</code><code>string</code><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-ExtractedPlanData">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">ExtractedPlanData</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;patientName&quot;: &quot;string&quot;,
+  &quot;meals&quot;: [
+    {
+      &quot;name&quot;: &quot;Almoço&quot;,
+      &quot;frequency&quot;: &quot;string&quot;,
+      &quot;options&quot;: [
+        {
+          &quot;foods&quot;: [
+            {
+              &quot;name&quot;: &quot;string&quot;,
+              &quot;quantity&quot;: &quot;string&quot;,
+              &quot;unit&quot;: &quot;g&quot;,
+              &quot;grams&quot;: 0,
+              &quot;isStriked&quot;: true
+            }
+          ],
+          &quot;preparation&quot;: &quot;string&quot;
+        }
+      ]
+    }
+  ],
+  &quot;equivalents&quot;: [
+    {
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;items&quot;: [
+        &quot;string&quot;
+      ]
+    }
+  ],
+  &quot;allowedSeasonings&quot;: [
+    &quot;string&quot;
+  ],
+  &quot;forbiddenFoods&quot;: [
+    &quot;string&quot;
+  ],
+  &quot;strikedFoods&quot;: [
+    &quot;string&quot;
+  ]
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>patientName</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>meals</code></td>
+        <td><code>array&lt;</code><a href="#schema-Meal"><code>Meal</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>equivalents</code></td>
+        <td><code>array&lt;</code><a href="#schema-EquivalentCategory"><code>EquivalentCategory</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>allowedSeasonings</code></td>
+        <td><code>array&lt;</code><code>string</code><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>forbiddenFoods</code></td>
+        <td><code>array&lt;</code><code>string</code><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>strikedFoods</code></td>
+        <td><code>array&lt;</code><code>string</code><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-CategoryForSelection">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">CategoryForSelection</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;categoryName&quot;: &quot;string&quot;,
+  &quot;items&quot;: [
+    &quot;string&quot;
+  ],
+  &quot;minRecommended&quot;: 0,
+  &quot;maxRecommended&quot;: 0
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>categoryName</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>items</code></td>
+        <td><code>array&lt;</code><code>string</code><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>minRecommended</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>maxRecommended</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-SubstitutionSuggestion">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">SubstitutionSuggestion</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;category&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>category</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-PlanFoodItem">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">PlanFoodItem</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;category&quot;: &quot;string&quot;,
+  &quot;meals&quot;: [
+    &quot;string&quot;
+  ],
+  &quot;suggestions&quot;: [
+    {
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;category&quot;: &quot;string&quot;
+    }
+  ],
+  &quot;weeklyQuantity&quot;: &quot;1.2 kg&quot;,
+  &quot;unit&quot;: &quot;string&quot;,
+  &quot;dailyGrams&quot;: 0,
+  &quot;mealCount&quot;: 0,
+  &quot;conversionFactor&quot;: 0,
+  &quot;useUnits&quot;: true,
+  &quot;dailyUnits&quot;: 0
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>category</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>meals</code></td>
+        <td><code>array&lt;</code><code>string</code><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>suggestions</code></td>
+        <td><code>array&lt;</code><a href="#schema-SubstitutionSuggestion"><code>SubstitutionSuggestion</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>weeklyQuantity</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><div class="cf-meta-line">ex.: <code>&quot;1.2 kg&quot;</code></div></td>
+      </tr>
+      <tr>
+        <td><code>unit</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>dailyGrams</code></td>
+        <td><code>number</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>mealCount</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>conversionFactor</code></td>
+        <td><code>number</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>useUnits</code></td>
+        <td><code>boolean</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>dailyUnits</code></td>
+        <td><code>number</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-PlanCategoryWithFoods">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">PlanCategoryWithFoods</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;categoryName&quot;: &quot;string&quot;,
+  &quot;foods&quot;: [
+    {
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;category&quot;: &quot;string&quot;,
+      &quot;meals&quot;: [
+        &quot;string&quot;
+      ],
+      &quot;suggestions&quot;: [
+        {
+          &quot;name&quot;: &quot;string&quot;,
+          &quot;category&quot;: &quot;string&quot;
+        }
+      ],
+      &quot;weeklyQuantity&quot;: &quot;1.2 kg&quot;,
+      &quot;unit&quot;: &quot;string&quot;,
+      &quot;dailyGrams&quot;: 0,
+      &quot;mealCount&quot;: 0,
+      &quot;conversionFactor&quot;: 0,
+      &quot;useUnits&quot;: true,
+      &quot;dailyUnits&quot;: 0
+    }
+  ]
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>categoryName</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>foods</code></td>
+        <td><code>array&lt;</code><a href="#schema-PlanFoodItem"><code>PlanFoodItem</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-ConfirmedFoodItem">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">ConfirmedFoodItem</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;category&quot;: &quot;string&quot;,
+  &quot;isSubstitute&quot;: true,
+  &quot;replacesFood&quot;: &quot;string&quot;,
+  &quot;meals&quot;: [
+    &quot;string&quot;
+  ]
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>category</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>isSubstitute</code></td>
+        <td><code>boolean</code></td>
+        <td><span class="cf-required">obrig.</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>replacesFood</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>meals</code></td>
+        <td><code>array&lt;</code><code>string</code><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-ShoppingItem">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">ShoppingItem</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;weeklyQuantity&quot;: &quot;string&quot;,
+  &quot;unit&quot;: &quot;string&quot;,
+  &quot;category&quot;: &quot;string&quot;,
+  &quot;notes&quot;: &quot;string&quot;,
+  &quot;isSubstitution&quot;: true,
+  &quot;substitutesFood&quot;: &quot;string&quot;,
+  &quot;substitutionMeals&quot;: [
+    &quot;string&quot;
+  ]
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>weeklyQuantity</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>unit</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>category</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>notes</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>isSubstitution</code></td>
+        <td><code>boolean</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>substitutesFood</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>substitutionMeals</code></td>
+        <td><code>array&lt;</code><code>string</code><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-GeneratedShoppingList">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">GeneratedShoppingList</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;items&quot;: [
+    {
+      &quot;name&quot;: &quot;string&quot;,
+      &quot;weeklyQuantity&quot;: &quot;string&quot;,
+      &quot;unit&quot;: &quot;string&quot;,
+      &quot;category&quot;: &quot;string&quot;,
+      &quot;notes&quot;: &quot;string&quot;,
+      &quot;isSubstitution&quot;: true,
+      &quot;substitutesFood&quot;: &quot;string&quot;,
+      &quot;substitutionMeals&quot;: [
+        &quot;string&quot;
+      ]
+    }
+  ],
+  &quot;generatedAt&quot;: 0
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>items</code></td>
+        <td><code>array&lt;</code><a href="#schema-ShoppingItem"><code>ShoppingItem</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>generatedAt</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td><p>Timestamp em ms.</p></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-OrientationSection">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">OrientationSection</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;title&quot;: &quot;string&quot;,
+  &quot;content&quot;: &quot;string&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>title</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>content</code></td>
+        <td><code>string</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-GeneratedOrientations">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">GeneratedOrientations</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;sections&quot;: [
+    {
+      &quot;title&quot;: &quot;string&quot;,
+      &quot;content&quot;: &quot;string&quot;
+    }
+  ],
+  &quot;generatedAt&quot;: 0
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>sections</code></td>
+        <td><code>array&lt;</code><a href="#schema-OrientationSection"><code>OrientationSection</code></a><code>&gt;</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>generatedAt</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-MealPlan">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">MealPlan</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;id&quot;: 0,
+  &quot;userId&quot;: 0,
+  &quot;patientName&quot;: &quot;string&quot;,
+  &quot;pdfUrl&quot;: &quot;string&quot;,
+  &quot;extractedData&quot;: {
+    &quot;patientName&quot;: &quot;string&quot;,
+    &quot;meals&quot;: [
+      {
+        &quot;name&quot;: &quot;Almoço&quot;,
+        &quot;frequency&quot;: &quot;string&quot;,
+        &quot;options&quot;: [
+          {
+            &quot;foods&quot;: [
+              {
+                &quot;name&quot;: &quot;string&quot;,
+                &quot;quantity&quot;: &quot;string&quot;,
+                &quot;unit&quot;: &quot;g&quot;,
+                &quot;grams&quot;: 0,
+                &quot;isStriked&quot;: true
+              }
+            ],
+            &quot;preparation&quot;: &quot;string&quot;
+          }
+        ]
+      }
+    ],
+    &quot;equivalents&quot;: [
+      {
+        &quot;name&quot;: &quot;string&quot;,
+        &quot;items&quot;: [
+          &quot;string&quot;
+        ]
+      }
+    ],
+    &quot;allowedSeasonings&quot;: [
+      &quot;string&quot;
+    ],
+    &quot;forbiddenFoods&quot;: [
+      &quot;string&quot;
+    ],
+    &quot;strikedFoods&quot;: [
+      &quot;string&quot;
+    ]
+  },
+  &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>userId</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>patientName</code></td>
+        <td><code>string</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>pdfUrl</code></td>
+        <td><code>string</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>extractedData</code></td>
+        <td><a href="#schema-ExtractedPlanData"><code>ExtractedPlanData</code></a> &amp; <em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>createdAt</code></td>
+        <td><code>string (date-time)</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="cf-schema is-collapsed" id="schema-ShoppingList">
+      <header class="cf-endpoint-head" data-collapse-toggle>
+        <span class="cf-method" style="background:#7c7c7c">OBJECT</span>
+        <code class="cf-path">ShoppingList</code>
+        
+        <span class="cf-collapse-arrow" aria-hidden="true">▾</span>
+      </header>
+      <div class="cf-endpoint-body">
+        
+        <div class="cf-tabs" data-tabs>
+          <div class="cf-tabs-bar">
+            <button type="button" class="cf-tab is-active" data-tab-name="example">Example Value</button>
+            <button type="button" class="cf-tab" data-tab-name="schema">Schema</button>
+          </div>
+          <div class="cf-tab-panel is-active" data-panel-name="example">
+            <pre class="cf-code"><code>{
+  &quot;id&quot;: 0,
+  &quot;userId&quot;: 0,
+  &quot;mealPlanId&quot;: 0,
+  &quot;selectedFoods&quot;: {
+    &quot;&lt;chave&gt;&quot;: [
+      &quot;string&quot;
+    ]
+  },
+  &quot;generatedList&quot;: {
+    &quot;items&quot;: [
+      {
+        &quot;name&quot;: &quot;string&quot;,
+        &quot;weeklyQuantity&quot;: &quot;string&quot;,
+        &quot;unit&quot;: &quot;string&quot;,
+        &quot;category&quot;: &quot;string&quot;,
+        &quot;notes&quot;: &quot;string&quot;,
+        &quot;isSubstitution&quot;: true,
+        &quot;substitutesFood&quot;: &quot;string&quot;,
+        &quot;substitutionMeals&quot;: [
+          &quot;string&quot;
+        ]
+      }
+    ],
+    &quot;generatedAt&quot;: 0
+  },
+  &quot;orientations&quot;: {
+    &quot;sections&quot;: [
+      {
+        &quot;title&quot;: &quot;string&quot;,
+        &quot;content&quot;: &quot;string&quot;
+      }
+    ],
+    &quot;generatedAt&quot;: 0
+  },
+  &quot;name&quot;: &quot;string&quot;,
+  &quot;createdAt&quot;: &quot;2025-01-01T00:00:00Z&quot;
+}</code></pre>
+          </div>
+          <div class="cf-tab-panel" data-panel-name="schema">
+            
+    <table class="cf-spec-table">
+      <thead><tr><th>Propriedade</th><th>Tipo</th><th></th><th>Descrição</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><code>id</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>userId</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>mealPlanId</code></td>
+        <td><code>integer</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>selectedFoods</code></td>
+        <td><code>object</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>generatedList</code></td>
+        <td><a href="#schema-GeneratedShoppingList"><code>GeneratedShoppingList</code></a> &amp; <em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>orientations</code></td>
+        <td><a href="#schema-GeneratedOrientations"><code>GeneratedOrientations</code></a> &amp; <em>—</em></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>name</code></td>
+        <td><code>string</code> • nullable</td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><code>createdAt</code></td>
+        <td><code>string (date-time)</code></td>
+        <td><span class="cf-optional">opcional</span></td>
+        <td></td>
+      </tr></tbody>
+    </table>
+          </div>
+        </div>
+      </div>
+    </article>
+    </section>
+  
+    </article>
+  </main>
+</div>
 
-    window.ui = SwaggerUIBundle({
-      spec: spec,
-      dom_id: '#swagger-ui',
-      deepLinking: true,
-      presets: [SwaggerUIBundle.presets.apis],
-      docExpansion: 'list',
-      defaultModelsExpandDepth: 1,
-      tryItOutEnabled: false,
-    });
-  </script>
   <script src="../../assets/cofounder.js"></script>
 </body>
-
 </html>

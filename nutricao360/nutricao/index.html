@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>nutricao API</title>
+  <link rel="preconnect" href="https://rsms.me/" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <link rel="stylesheet" href="../../assets/cofounder.css" />
+</head>
+
+<body>
+
+<header class="cf-topbar">
+  <button class="cf-icon cf-menu-toggle" id="cfMenuToggle" aria-label="Abrir menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <a class="cf-brand" href="../../index.html">
+    <span class="cf-logo">N</span>
+    <span>Nutricao360 Docs</span>
+  </a>
+  <nav class="cf-nav">
+    <a href="../../index.html">Overview</a>
+    <a href="../../docs/index.html">HealthCheck</a>
+    <a href="../index.html" class="is-active">Nutricao360</a>
+    <a href="../../docs-csat/docs.html">CSAT</a>
+  </nav>
+  <div class="cf-spacer"></div>
+  <input id="cfSearch" class="cf-search" type="search" placeholder="Buscar app…" />
+  <button class="cf-icon" id="cfThemeToggle" aria-label="Alternar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>
+</header>
+
+<div class="cf-backdrop"></div>
+
+<div class="cf-layout">
+<aside class="cf-sidebar">
+    <div class="cf-group">Geral</div>
+    <a class="cf-nav-item" href="../index.html">Visão geral<span class="cf-tag">hub</span></a>
+    <a class="cf-nav-item" href="../API.md">API.md<span class="cf-tag">md</span></a>
+
+    <div class="cf-group">Backoffice</div>
+    <a class="cf-nav-item" href="../admin/">admin<span class="cf-tag">3005</span></a>
+
+    <div class="cf-group">Apps de IA</div>
+    <a class="cf-nav-item" href="../exames/">exames<span class="cf-tag">3002</span></a>
+    <a class="cf-nav-item" href="../nutricao/">nutricao<span class="cf-tag">3003</span></a>
+    <a class="cf-nav-item" href="../corpo/">corpo<span class="cf-tag">3004</span></a>
+    <a class="cf-nav-item" href="../receitas/">receitas<span class="cf-tag">3006</span></a>
+    <a class="cf-nav-item" href="../suporte/">suporte<span class="cf-tag">3005</span></a>
+    <a class="cf-nav-item" href="../portal/">portal<span class="cf-tag">3008</span></a>
+  </aside>
+
+  <main class="cf-main">
+    <section class="cf-ribbon">
+      <h2 class="cf-ribbon-title" id="ribbonTitle">API</h2>
+      <div class="cf-meta" id="ribbonMeta"></div>
+    </section>
+    <section class="cf-swagger">
+      <div id="swagger-ui"></div>
+    </section>
+  </main>
+</div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    window.ui = SwaggerUIBundle({
+      url: './openapi.yaml',
+      dom_id: '#swagger-ui',
+      deepLinking: true,
+      presets: [SwaggerUIBundle.presets.apis],
+      docExpansion: 'list',
+      defaultModelsExpandDepth: 1,
+      tryItOutEnabled: false,
+      onComplete: function () {
+        try {
+          var spec = window.ui.specSelectors.specJson().toJS();
+          var info = spec.info || {};
+          var t = document.getElementById('ribbonTitle');
+          if (t) t.textContent = info.title || 'API';
+          var meta = document.getElementById('ribbonMeta');
+          if (meta) {
+            (spec.servers || []).slice(0, 2).forEach(function (s) {
+              var e = document.createElement('span'); e.className = 'cf-mono';
+              e.textContent = s.url; meta.appendChild(e);
+            });
+            var v = document.createElement('span'); v.className = 'cf-mono';
+            v.textContent = 'OpenAPI ' + (spec.openapi || '3.0'); meta.appendChild(v);
+          }
+          if (info.title) document.title = info.title + ' \u00b7 Docs';
+        } catch (e) {}
+      },
+    });
+  </script>
+  <script src="../../assets/cofounder.js"></script>
+</body>
+
+</html>

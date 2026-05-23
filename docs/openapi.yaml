@@ -1,0 +1,335 @@
+openapi: 3.1.0
+info:
+  title: HealthCheck Apps API
+  version: 1.0.0
+  description: |
+    Documentação da API para o monorepo **HealthCheck Apps** — um conjunto de 9
+    aplicações web voltadas à saúde que compartilham a mesma autenticação,
+    integração de pagamentos (Guru) e banco de dados MySQL.
+    Cada app expõe:
+    - **Endpoints REST** (este documento OpenAPI): callback OAuth, webhook Guru e
+      um gateway tRPC genérico.
+    - **Procedures tRPC** (documentadas em [`API.md`](./API.md)): a maior parte da
+      lógica da aplicação — perfis, análises, histórico, etc.
+    A autenticação é gerenciada via cookie HTTP-only (`__session_<APP_ID>`) assinado
+    com JWT. O acesso é condicionado ao usuário possuir uma **assinatura Guru ativa**
+    correspondente a um dos IDs de produto configurados.
+    ## Apps e portas
+    | App | Porta | Domínio |
+    |---|---|---|
+    | aquaflow      | 3001      | https://aqua.nutricao360.com/ |
+    | cardiocheck   | 3002      | https://cardiocheck.nutricao360.com/ |
+    | glicocheck    | 3003      | https://glicocheck.nutricao360.com/ |
+    | nutricheck    | 3004      | https://nutricheck.nutricao360.com/ |
+    | osteocheck    | 3005      | https://osteocheck.nutricao360.com/ |
+    | renalcheck    | 3006      | https://renalcheck.nutricao360.com/ |
+    | sexcheck      | 3007      | https://sexcheck.nutricao360.com/ |
+    | tireocheck    | 3008      | https://tireocheck.nutricao360.com/ |
+    | hemocheck     | 3009      | https://hemograma.nutricao360.com/  
+
+  contact:
+    name: HealthCheck Apps
+  license:
+    name: Proprietária
+servers:
+  - url: http://localhost:3001
+    description: aquaflow (dev)
+  - url: http://localhost:3002
+    description: cardiocheck (dev)
+  - url: http://localhost:3003
+    description: glicocheck (dev)
+  - url: http://localhost:3004
+    description: nutricheck (dev)
+  - url: http://localhost:3005
+    description: osteocheck (dev)
+  - url: http://localhost:3006
+    description: renalcheck (dev)
+  - url: http://localhost:3007
+    description: sexcheck (dev)
+  - url: http://localhost:3008
+    description: tireocheck (dev)
+  - url: http://localhost:3009
+    description: hemocheck (dev)
+  - url: https://{app}.{domain}
+    description: Produção (EasyPanel)
+    variables:
+      app:
+        default: aqua
+        enum: [aqua, cardio, glico, nutri, osteo, renal, sex, tireo, hemo]
+      domain:
+        default: example.com
+tags:
+  - name: Auth
+    description: Fluxo de callback OAuth que troca um código de terceiro por um cookie de sessão.
+  - name: Webhooks
+    description: Integração com a plataforma de pagamentos Guru (eventos de assinatura).
+  - name: tRPC
+    description: |
+      Gateway para a API tRPC. Os procedures não estão documentados aqui — consulte
+      [`API.md`](./API.md) para o catálogo completo. Formato da URL:
+      `/api/trpc/{router}.{procedure}`.
+paths:
+  /api/oauth/callback:
+    get:
+      tags: [Auth]
+      summary: Callback OAuth
+      description: |
+        Recebe o `code` de autorização e o `state` do provedor de identidade externo,
+        troca-os por um token de acesso, busca as informações do usuário, realiza
+        upsert do usuário no banco de dados, emite um token de sessão JWT e o define
+        como cookie HTTP-only. Por fim, redireciona para `/`.
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema: { type: string }
+          description: Código de autorização retornado pelo IdP.
+        - in: query
+          name: state
+          required: true
+          schema: { type: string }
+          description: Valor de estado opaco gerado no início do fluxo OAuth.
+      responses:
+        "302":
+          description: Redirecionamento para `/` em caso de sucesso. O cookie de sessão é definido na resposta.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: Cookie de sessão HTTP-only (`__session_<APP_ID>`).
+        "400":
+          description: "`code` ou `state` ausentes, ou `openId` ausente nas informações do usuário."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500":
+          description: Falha na troca OAuth ou na busca do usuário.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/webhook/guru:
+    get:
+      tags: [Webhooks]
+      summary: Healthcheck do webhook Guru
+      description: Sonda de liveness para confirmar que o endpoint do webhook está acessível.
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string, example: guru-webhook }
+    post:
+      tags: [Webhooks]
+      summary: Evento de assinatura Guru
+      description: |
+        Recebe eventos de pagamento e assinatura da plataforma Guru. Registra o payload
+        bruto e, em seguida, realiza upsert do registro de assinatura local com base em
+        `product.id` e `status`. Eventos referentes a produtos desconhecidos são aceitos,
+        mas ignorados.
+        **Autenticação:** o corpo deve incluir um `api_token` correspondente ao
+        `GURU_ACCOUNT_TOKEN` configurado; caso contrário, a requisição é rejeitada com `401`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuruWebhookPayload" }
+      responses:
+        "200":
+          description: Evento aceito (processado ou ignorado).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Ignorado }
+        "401":
+          description: "`api_token` inválido."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500":
+          description: Banco de dados indisponível ou erro interno.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/trpc/{procedure}:
+    parameters:
+      - in: path
+        name: procedure
+        required: true
+        schema: { type: string }
+        description: |
+          Caminho em notação de ponto do procedure a ser invocado, por exemplo:
+          `auth.me`, `profile.upsert`, `analysis.list`. Consulte [`API.md`](./API.md)
+          para o catálogo por app.
+    get:
+      tags: [tRPC]
+      summary: Invocar uma `query` tRPC
+      description: |
+        Gateway genérico para queries tRPC. Os inputs são passados via parâmetro de
+        query `input` como JSON codificado em URL (formato tRPC v10). A autenticação
+        é fornecida pelo cookie de sessão.
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: query
+          name: input
+          schema: { type: string }
+          description: Input do procedure serializado em JSON e codificado na URL.
+        - in: query
+          name: batch
+          schema: { type: integer, enum: [1] }
+          description: Definir como `1` quando o cliente utilizar o batch link do tRPC.
+      responses:
+        "200":
+          description: Resposta tRPC bem-sucedida.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrpcResponse" }
+        "401":
+          description: O procedure requer autenticação.
+        "403":
+          description: O procedure requer papel de administrador.
+        "400":
+          description: Falha na validação do input (Zod).
+    post:
+      tags: [tRPC]
+      summary: Invocar uma `mutation` tRPC
+      description: |
+        Gateway genérico para mutations tRPC. A autenticação é fornecida pelo cookie de sessão.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Input do procedure (validado por um schema Zod no servidor).
+      responses:
+        "200":
+          description: Resposta tRPC bem-sucedida.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrpcResponse" }
+        "401":
+          description: O procedure requer autenticação.
+        "403":
+          description: O procedure requer papel de administrador.
+        "400":
+          description: Falha na validação do input (Zod).
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __session_<APP_ID>
+      description: |
+        Cookie de sessão JWT definido por `/api/oauth/callback` ou por `auth.emailAccess`.
+        O nome real do cookie é `__session_` seguido do id do app (ex.: `__session_aqua`).
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, example: Não autorizado }
+    User:
+      type: object
+      required: [id, openId, role, createdAt, updatedAt, lastSignedIn]
+      properties:
+        id: { type: integer, example: 42 }
+        openId: { type: string, example: email_user@example.com }
+        name: { type: string, nullable: true, example: João Silva }
+        email: { type: string, format: email, nullable: true }
+        loginMethod: { type: string, nullable: true, example: email }
+        role: { type: string, enum: [user, admin], example: user }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        lastSignedIn: { type: string, format: date-time }
+    GuruSubscription:
+      type: object
+      required: [email, status, createdAt, updatedAt]
+      properties:
+        email: { type: string, format: email }
+        status:
+          type: string
+          enum: [active, inactive, expired]
+          example: active
+        productId: { type: string, example: "1767359181" }
+        productName: { type: string, example: "Plano Trimestral" }
+        purchaseDate: { type: string, format: date-time, nullable: true }
+        expiresAt: { type: string, format: date-time, nullable: true }
+        transactionId: { type: string, nullable: true }
+        lastEventType: { type: string, nullable: true, example: approved }
+    GuruWebhookPayload:
+      type: object
+      description: |
+        Formato do payload enviado pela plataforma Guru. Apenas os campos utilizados
+        pelo handler estão documentados; o payload completo é persistido como JSON
+        em `guru_webhook_events`.
+      required: [api_token]
+      properties:
+        api_token:
+          type: string
+          description: Deve corresponder ao `GURU_ACCOUNT_TOKEN` do servidor.
+        id: { type: string, description: ID da transação. }
+        event: { type: string, example: approved }
+        status:
+          type: string
+          example: approved
+          description: Convertido para minúsculas; `approved`, `paid` ou `completed` são tratados como ativos.
+        contact:
+          type: object
+          properties:
+            email: { type: string, format: email }
+            name: { type: string }
+        buyer:
+          type: object
+          description: Localização alternativa dos dados do comprador em alguns tipos de evento.
+          properties:
+            email: { type: string, format: email }
+            name: { type: string }
+        product:
+          type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+              description: |
+                Deve corresponder a um dos IDs de produto Guru configurados (caso contrário,
+                o evento é registrado e ignorado).
+              example: "1767359181"
+            name: { type: string, example: "Cardiocheck — Semestral" }
+    TrpcResponse:
+      description: |
+        Envelope de resposta tRPC v10. Respostas bem-sucedidas de chamada única utilizam
+        o caminho `result.data`; erros utilizam o caminho `error`. Respostas em lote são
+        encapsuladas em um array.
+      oneOf:
+        - type: object
+          required: [result]
+          properties:
+            result:
+              type: object
+              properties:
+                data: { description: Saída do procedure (qualquer valor serializável em JSON). }
+        - type: object
+          required: [error]
+          properties:
+            error:
+              type: object
+              properties:
+                message: { type: string }
+                code: { type: integer }
+                data:
+                  type: object
+                  properties:
+                    code: { type: string }
+                    httpStatus: { type: integer }
+        - type: array
+          items: { type: object }

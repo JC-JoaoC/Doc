@@ -1,0 +1,321 @@
+openapi: 3.1.0
+info:
+  title: corpo API
+  version: 1.0.0
+  description: |
+    **corpo** — App de análise corporal da Nutricao360.
+
+    Recebe 3 fotos (frente/lateral/costas) + medidas antropométricas e gera
+    análise de composição via modelo de visão da OpenRouter. Persiste
+    `BodyAnalysis` por e-mail. Endpoints públicos validam assinatura via
+    `UnifiedSubscriptionService`; `report` e `delete` exigem NextAuth.
+
+    - **Porta dev:** 3004
+    - **Auth:** NextAuth (sessão) + verificação de e-mail para uso público
+servers:
+  - url: http://localhost:3004
+    description: Desenvolvimento
+  - url: https://corpo.nutricao360.com
+    description: Produção
+tags:
+  - name: Meta
+    description: Spec OpenAPI exposta pelo app.
+  - name: Auth
+    description: NextAuth.
+  - name: Body
+    description: Análise corporal, histórico e relatório.
+  - name: Webhooks
+    description: Eventos da plataforma Guru.
+paths:
+  /api/swagger:
+    get:
+      tags: [Meta]
+      summary: OpenAPI spec do app corpo
+      responses:
+        "200":
+          description: Spec OpenAPI 3.1 em JSON.
+
+  /api/auth/{...nextauth}:
+    get:
+      tags: [Auth]
+      summary: NextAuth catch-all (sessão/providers/csrf/etc.)
+      parameters:
+        - in: path
+          name: nextauth
+          required: true
+          schema: { type: array, items: { type: string } }
+          style: simple
+      responses:
+        "200": { description: OK }
+        "302": { description: Redirect }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+    post:
+      tags: [Auth]
+      summary: NextAuth catch-all (signin/signout/callbacks)
+      parameters:
+        - in: path
+          name: nextauth
+          required: true
+          schema: { type: array, items: { type: string } }
+          style: simple
+      responses:
+        "200": { description: OK }
+        "302": { description: Redirect }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/body/analyze:
+    post:
+      tags: [Body]
+      summary: Analisa composição corporal a partir de 3 fotos
+      description: |
+        Acesso público — valida assinatura por e-mail. Envia as 3 imagens ao
+        modelo de visão e devolve estimativas (BMI, %BF, MM, etc.). Persiste
+        `BodyAnalysis`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [email, frontPhoto, sidePhoto, backPhoto, weight, height, age, gender]
+              properties:
+                email: { type: string, format: email }
+                frontPhoto: { type: string, format: binary }
+                sidePhoto: { type: string, format: binary }
+                backPhoto: { type: string, format: binary }
+                weight: { type: number, description: kg }
+                height: { type: number, description: cm }
+                age: { type: integer }
+                gender: { type: string, enum: [male, female] }
+                waistCircumference: { type: number, nullable: true }
+      responses:
+        "200":
+          description: Análise corporal criada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BodyAnalysis" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/body/analysis/{id}:
+    delete:
+      tags: [Body]
+      summary: Exclui uma análise corporal do usuário logado
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Excluído.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/body/report:
+    post:
+      tags: [Body]
+      summary: Gera relatório textual (≤200 palavras) via OpenRouter
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [weight, height, gender, age]
+              properties:
+                weight: { type: number }
+                height: { type: number }
+                bmi: { type: number, nullable: true }
+                bodyFat: { type: number, nullable: true }
+                muscleMass: { type: number, nullable: true }
+                gender: { type: string, enum: [male, female] }
+                age: { type: integer }
+      responses:
+        "200":
+          description: Relatório textual.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  report: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/body/stats:
+    get:
+      tags: [Body]
+      summary: Stats + histórico recente do e-mail
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema: { type: string, format: email }
+      responses:
+        "200":
+          description: Stats e histórico recente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalAnalyses: { type: integer }
+                  latest:
+                    type: array
+                    items: { $ref: "#/components/schemas/BodyAnalysis" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/body/verify-email:
+    get:
+      tags: [Body]
+      summary: Verifica assinatura e lista análises paginadas
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema: { type: string, format: email }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+      responses:
+        "200":
+          description: Análises paginadas.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasAccess: { type: boolean }
+                  analyses:
+                    type: array
+                    items: { $ref: "#/components/schemas/BodyAnalysis" }
+                  page: { type: integer }
+                  totalPages: { type: integer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/webhook/guru:
+    get:
+      tags: [Webhooks]
+      summary: Healthcheck do webhook Guru
+      responses:
+        "200":
+          description: OK.
+    post:
+      tags: [Webhooks]
+      summary: Evento de assinatura Guru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuruWebhookPayload" }
+      responses:
+        "200": { $ref: "#/components/responses/WebhookOk" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+  responses:
+    BadRequest:
+      description: Parâmetros inválidos.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Sessão inválida ou api_token inválido.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Recurso não pertence ao usuário ou assinatura inativa.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Análise inexistente.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ServerError:
+      description: Erro interno.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    WebhookOk:
+      description: Evento aceito.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+    BodyAnalysis:
+      type: object
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        email: { type: string, format: email }
+        weight: { type: number }
+        height: { type: number }
+        age: { type: integer }
+        gender: { type: string, enum: [male, female] }
+        bmi: { type: number, nullable: true }
+        bodyFat: { type: number, nullable: true }
+        muscleMass: { type: number, nullable: true }
+        waistCircumference: { type: number, nullable: true }
+        analysisText: { type: string }
+        photos:
+          type: object
+          properties:
+            frontUrl: { type: string }
+            sideUrl: { type: string }
+            backUrl: { type: string }
+        createdAt: { type: string, format: date-time }
+    GuruWebhookPayload:
+      type: object
+      required: [api_token]
+      properties:
+        api_token: { type: string }
+        id: { type: string }
+        event: { type: string }
+        status: { type: string }
+        contact:
+          type: object
+          properties:
+            email: { type: string, format: email }
+        product:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }

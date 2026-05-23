@@ -1,0 +1,455 @@
+// Build script descartável: lê todas as specs OpenAPI já embutidas nos
+// docs/<app>/index.html e em docs-csat/docs.html, lê docs/API.md e
+// gera um único site self-contained em ./index.html.
+//
+// Uso: node build-site.js
+
+const fs = require('fs');
+const path = require('path');
+const yaml = require('js-yaml');
+
+const ROOT = __dirname;
+const DOCS = path.join(ROOT, 'docs');
+const CSAT = path.join(ROOT, 'docs-csat');
+const N360 = path.join(ROOT, 'nutricao360');
+const OUT = path.join(ROOT, 'index.html');
+
+function readSpecFromHtml(htmlPath, scriptId) {
+  const html = fs.readFileSync(htmlPath, 'utf8');
+  const re = new RegExp(
+    `<script\\s+id=["']${scriptId}["'][^>]*>([\\s\\S]*?)</script>`,
+    'i'
+  );
+  const m = html.match(re);
+  if (!m) throw new Error(`Spec não encontrada em ${htmlPath} (id=${scriptId})`);
+  return JSON.parse(m[1]);
+}
+
+function readSpecFromYaml(yamlPath) {
+  const txt = fs.readFileSync(yamlPath, 'utf8');
+  return yaml.load(txt);
+}
+
+// catálogo (mesma ordem que o índice antigo)
+const apps = [
+  { key: 'cardiocheck', group: 'clinical', port: 3002, desc: 'Análise cardiovascular — 10 exames lipídicos/inflamatórios, 5 razões e correlações de risco.' },
+  { key: 'glicocheck', group: 'clinical', port: 3003, desc: 'Análise glicêmica — controle de glicose, resistência à insulina (HOMA-IR/Beta) e marcadores metabólicos.' },
+  { key: 'hemocheck', group: 'clinical', port: 3009, desc: 'Hemograma completo — séries vermelha, branca e plaquetária, com razão NLR e correlações hematológicas.' },
+  { key: 'nutricheck', group: 'clinical', port: 3004, desc: 'Análise nutricional — vitaminas, minerais, índices calculados e correlações nutricionais.' },
+  { key: 'osteocheck', group: 'clinical', port: 3005, desc: 'Saúde óssea — 10 marcadores (cálcio, vitamina D, PTH, CTX, P1NP…), razões e correlações.' },
+  { key: 'renalcheck', group: 'clinical', port: 3006, desc: 'Função renal — 7 exames, razão BUN/creatinina, estadiamento DRC G1–G5.' },
+  { key: 'sexcheck', group: 'clinical', port: 3007, desc: 'Hormônios sexuais — perfis masculino e feminino, fase do ciclo, SOP, hipogonadismo.' },
+  { key: 'tireocheck', group: 'clinical', port: 3008, desc: 'Função tireoidiana — TSH, T4L, T3L, T3R, anti-TPO/TG, razão T3L/T3R e correlações.' },
+  { key: 'aquaflow', group: 'habit', port: 3001, desc: 'Hidratação personalizada — perfil, meta diária calculada e slots ao longo do dia.' },
+  { key: 'listaCompras', group: 'habit', port: null, desc: 'Plano alimentar via PDF + LLM, lista de compras com conversão automática e meal-prep.' },
+];
+
+// Carrega specs dos apps HealthCheck (specs embutidas em <script id="openapi-spec">)
+for (const app of apps) {
+  const indexPath = path.join(DOCS, app.key, 'index.html');
+  app.spec = readSpecFromHtml(indexPath, 'openapi-spec');
+}
+
+// Catálogo do monorepo Nutricao360 (specs em arquivos openapi.yaml)
+const nutri360Apps = [
+  { key: 'n360-admin',    label: 'admin',    group: 'nutricao360', port: 3005, dir: 'admin',
+    desc: 'Painel administrativo central — gestão de admins, usuários, exames, planos, relatórios, suplementos, IA, base de conhecimento, FirePay e webhooks.' },
+  { key: 'n360-exames',   label: 'exames',   group: 'nutricao360', port: 3002, dir: 'exames',
+    desc: 'Upload de exames (PDF/OCR Mistral) e análise via IA (OpenRouter) com RAG. SSO por token e integrações Hotmart/Guru.' },
+  { key: 'n360-nutricao', label: 'nutricao', group: 'nutricao360', port: 3003, dir: 'nutricao',
+    desc: 'Análise nutricional — reconhece refeições por foto (vision) ou texto, calcula calorias/macros e registra histórico em NutritionLog.' },
+  { key: 'n360-corpo',    label: 'corpo',    group: 'nutricao360', port: 3004, dir: 'corpo',
+    desc: 'Análise corporal a partir de 3 fotos + medidas antropométricas, com histórico, estatísticas e relatório textual.' },
+  { key: 'n360-receitas', label: 'receitas', group: 'nutricao360', port: 3006, dir: 'receitas',
+    desc: 'Chat IA de receitas — sessões persistentes com RAG sobre recipe_reference e respostas em JSON.' },
+  { key: 'n360-suporte',  label: 'suporte',  group: 'nutricao360', port: 3005, dir: 'suporte',
+    desc: 'Chat IA de suporte — mesma arquitetura do receitas, com RAG sobre support_reference para dúvidas operacionais.' },
+  { key: 'n360-portal',   label: 'portal',   group: 'nutricao360', port: 3008, dir: 'portal',
+    desc: 'Portal do cliente — login por e-mail, lista documentos aprovados/pendentes por etapa e status CSAT externo.' },
+];
+
+for (const app of nutri360Apps) {
+  const yamlPath = path.join(N360, app.dir, 'openapi.yaml');
+  app.spec = readSpecFromYaml(yamlPath);
+}
+
+apps.push(...nutri360Apps);
+
+// Carrega CSAT
+const csatSpec = readSpecFromHtml(path.join(CSAT, 'docs.html'), 'spec');
+
+// Carrega API.md
+const apiMd = fs.readFileSync(path.join(DOCS, 'API.md'), 'utf8');
+const nutri360Md = fs.readFileSync(path.join(N360, 'API.md'), 'utf8');
+
+// Serializa dados para o site
+const siteData = {
+  apps: apps.map(({ key, label, group, port, desc, spec }) => ({
+    key, label: label || key, group, port, desc, spec,
+  })),
+  csat: { key: 'csat', spec: csatSpec },
+  overview: apiMd,
+  nutri360Overview: nutri360Md,
+};
+
+const dataJson = JSON.stringify(siteData)
+  .replace(/</g, '\\u003c')
+  .replace(/>/g, '\\u003e')
+  .replace(/&/g, '\\u0026')
+
+// CSS cofounder embutido (inline) — espelha assets/cofounder.css
+const cofounderCss = fs.readFileSync(path.join(ROOT, 'assets', 'cofounder.css'), 'utf8');
+
+const html = `<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Documentação</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%95%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://rsms.me/" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <style>
+${cofounderCss}
+
+    /* tweaks específicos do SPA raiz */
+    .view { display: none; }
+    .view.is-active { display: block; }
+    .cf-hero {
+      max-width: var(--content-w);
+      margin: 0 auto;
+      padding: 56px 28px 0;
+    }
+    .cf-hero .cf-eyebrow {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--muted-2); margin: 0 0 14px;
+    }
+    .cf-hero h1 {
+      font-size: 40px; line-height: 1.1; font-weight: 700;
+      letter-spacing: -0.025em; margin: 0 0 14px;
+      color: var(--fg-strong);
+    }
+    .cf-hero p.lede {
+      font-size: 18px; line-height: 1.55; color: var(--muted);
+      margin: 0 0 20px; max-width: 640px;
+    }
+    .cf-cards-section {
+      max-width: var(--content-w);
+      margin: 24px auto 0;
+      padding: 0 28px;
+    }
+    .cf-section-title {
+      grid-column: 1 / -1;
+      margin: 32px 0 8px;
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--muted-2);
+    }
+    /* markdown reaproveita .cf-content */
+  </style>
+</head>
+<body>
+  <header class="cf-topbar">
+    <button class="cf-icon cf-menu-toggle" id="menuToggle" aria-label="Abrir menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <a class="cf-brand" href="#/overview">
+      <span class="cf-logo">⚕</span>
+      <span>Documentação</span>
+    </a>
+    <nav class="cf-nav">
+      <a href="#/overview">Overview</a>
+      <a href="#/n360-overview">Nutricao360</a>
+      <a href="#/csat">CSAT</a>
+    </nav>
+    <div class="cf-spacer"></div>
+    <input id="search" class="cf-search" type="search" placeholder="Buscar app…" />
+    <button class="cf-icon" id="themeToggle" aria-label="Alternar tema">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </header>
+
+  <div class="cf-backdrop" id="backdrop"></div>
+
+  <div class="cf-layout">
+    <aside class="cf-sidebar" id="sidebar">
+      <div class="cf-group">Geral</div>
+      <a class="cf-nav-item" data-route="overview" href="#/overview">Visão geral<span class="cf-tag">md</span></a>
+
+      <div class="cf-group" data-section="clinical">Análise clínica</div>
+      <!-- preenchido por JS -->
+
+      <div class="cf-group" data-section="habit">Hábito e planejamento</div>
+      <!-- preenchido por JS -->
+
+      <div class="cf-group" data-section="nutricao360">Nutricao360</div>
+      <a class="cf-nav-item" data-route="n360-overview" href="#/n360-overview">Visão geral<span class="cf-tag">md</span></a>
+      <!-- apps do nutricao360 preenchidos por JS -->
+
+      <div class="cf-group" data-section="other">Pesquisa &amp; satisfação</div>
+      <a class="cf-nav-item" data-route="csat" href="#/csat">CSAT Plano Alimentar<span class="cf-tag">REST</span></a>
+    </aside>
+
+    <main class="cf-main">
+      <!-- view: overview -->
+      <section class="view" id="view-overview">
+        <div class="cf-hero">
+          <p class="cf-eyebrow">Documentação</p>
+          <h1>HealthCheck Apps</h1>
+          <p class="lede">
+            Documentação consolidada: 10 aplicações HealthCheck (banco MySQL único,
+            integração com a plataforma Guru), o monorepo <strong>Nutricao360</strong> com
+            7 apps Next.js (admin, exames, nutricao, corpo, receitas, suporte e portal)
+            e o CSAT Plano Alimentar com sua API REST dedicada.
+          </p>
+          <div class="cf-pills">
+            <a class="cf-pill" data-route="cardiocheck">cardiocheck</a>
+            <a class="cf-pill" data-route="glicocheck">glicocheck</a>
+            <a class="cf-pill" data-route="aquaflow">aquaflow</a>
+            <a class="cf-pill" data-route="n360-overview">Nutricao360</a>
+            <a class="cf-pill" data-route="csat">CSAT</a>
+          </div>
+        </div>
+        <div class="cf-cards-section"><div class="cf-cards" id="cardsClinical"></div></div>
+        <div class="cf-cards-section"><div class="cf-cards" id="cardsHabit"></div></div>
+        <div class="cf-cards-section"><div class="cf-cards" id="cardsNutri360"></div></div>
+        <div class="cf-cards-section"><div class="cf-cards" id="cardsOther"></div></div>
+        <article class="cf-content" id="overviewMd"></article>
+      </section>
+
+      <!-- view: nutricao360 overview -->
+      <section class="view" id="view-n360-overview">
+        <article class="cf-content" id="n360OverviewMd"></article>
+      </section>
+
+      <!-- view: swagger (reutilizado para cada app) -->
+      <section class="view" id="view-swagger">
+        <section class="cf-ribbon">
+          <h2 class="cf-ribbon-title" id="ribbonTitle">—</h2>
+          <div class="cf-meta" id="ribbonMeta"></div>
+        </section>
+        <section class="cf-swagger">
+          <div id="swagger-ui"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11/marked.min.js"></script>
+
+  <script id="site-data" type="application/json">${dataJson}</script>
+  <script>
+    const data = JSON.parse(document.getElementById('site-data').textContent);
+    const apps = data.apps;
+    const csat = data.csat;
+
+    // ---------- THEME ----------
+    const savedTheme = localStorage.getItem('cf-theme') || localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('cf-theme', next);
+      // recarrega swagger se estiver visível, para reaplicar variáveis
+      if (currentRoute && currentRoute !== 'overview' && currentRoute !== 'n360-overview') renderSwagger(currentRoute);
+    });
+
+    // ---------- SIDEBAR (mobile drawer) ----------
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
+    const MOBILE_MQ = window.matchMedia('(max-width: 900px)');
+
+    function toggleMenu() {
+      const opened = sidebar.classList.toggle('is-open');
+      backdrop.classList.toggle('is-open', opened);
+    }
+
+    document.getElementById('menuToggle').addEventListener('click', toggleMenu);
+    backdrop.addEventListener('click', () => {
+      sidebar.classList.remove('is-open');
+      backdrop.classList.remove('is-open');
+    });
+
+    function navItemHtml(key, label, port) {
+      const tagHtml = port
+        ? \`<span class="cf-tag">\${port}</span>\`
+        : '<span class="cf-tag">api</span>';
+      return \`<a class="cf-nav-item" data-route="\${key}" href="#/\${key}">\${label}\${tagHtml}</a>\`;
+    }
+
+    function populateSidebar() {
+      const clinical = apps.filter(a => a.group === 'clinical');
+      const habit = apps.filter(a => a.group === 'habit');
+      const nutri360 = apps.filter(a => a.group === 'nutricao360');
+      const clinHtml = clinical.map(a => navItemHtml(a.key, a.label, a.port)).join('');
+      const habitHtml = habit.map(a => navItemHtml(a.key, a.label, a.port || '—')).join('');
+      const n360Html = nutri360.map(a => navItemHtml(a.key, a.label, a.port)).join('');
+      sidebar.querySelector('[data-section="clinical"]').insertAdjacentHTML('afterend', clinHtml);
+      sidebar.querySelector('[data-section="habit"]').insertAdjacentHTML('afterend', habitHtml);
+      // o item "Visão geral" do nutricao360 já está hard-coded; inserimos os apps abaixo dele
+      const n360OverviewItem = sidebar.querySelector('a.cf-nav-item[data-route="n360-overview"]');
+      n360OverviewItem.insertAdjacentHTML('afterend', n360Html);
+    }
+
+    function cardHtml(a) {
+      const port = a.port ? \`<span class="cf-tag">\${a.port}</span>\` : '<span class="cf-tag">—</span>';
+      return \`<a class="cf-card" data-route="\${a.key}" href="#/\${a.key}">
+        <div class="cf-card-head"><h3>\${a.label}</h3>\${port}</div>
+        <p>\${a.desc}</p>
+        <span class="cf-card-link">Abrir →</span>
+      </a>\`;
+    }
+
+    function sectionHeader(title) {
+      return '<h2 class="cf-section-title">' + title + '</h2>';
+    }
+
+    function populateCards() {
+      document.getElementById('cardsClinical').innerHTML =
+        sectionHeader('Análise clínica') +
+        apps.filter(a => a.group === 'clinical').map(cardHtml).join('');
+      document.getElementById('cardsHabit').innerHTML =
+        sectionHeader('Hábito e planejamento') +
+        apps.filter(a => a.group === 'habit').map(cardHtml).join('');
+      document.getElementById('cardsNutri360').innerHTML =
+        sectionHeader('Nutricao360 · monorepo de 7 apps') +
+        \`<a class="cf-card" data-route="n360-overview" href="#/n360-overview">
+          <div class="cf-card-head"><h3>Visão geral</h3><span class="cf-tag">md</span></div>
+          <p>Documentação consolidada da API do monorepo Nutricao360 — convenções, autenticação, fluxos de status e webhooks de pagamento.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>\` +
+        apps.filter(a => a.group === 'nutricao360').map(cardHtml).join('');
+      document.getElementById('cardsOther').innerHTML =
+        sectionHeader('Pesquisa &amp; satisfação') +
+        \`<a class="cf-card" data-route="csat" href="#/csat">
+          <div class="cf-card-head"><h3>CSAT Plano Alimentar</h3><span class="cf-tag">REST</span></div>
+          <p>Pesquisa de satisfação de planos alimentares — login JWT, registro público de respostas e enriquecimento via Nutrição 360.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>\`;
+    }
+
+    // ---------- ROUTER ----------
+    let currentRoute = null;
+    function setRoute(route) {
+      currentRoute = route;
+      // active nav
+      document.querySelectorAll('a.cf-nav-item').forEach(el => {
+        el.classList.toggle('is-active', el.dataset.route === route);
+      });
+      // views
+      const isOverview = route === 'overview';
+      const isN360Overview = route === 'n360-overview';
+      document.getElementById('view-overview').classList.toggle('is-active', isOverview);
+      document.getElementById('view-n360-overview').classList.toggle('is-active', isN360Overview);
+      document.getElementById('view-swagger').classList.toggle('is-active', !isOverview && !isN360Overview);
+      if (isOverview) {
+        document.title = 'HealthCheck Apps · Documentação';
+      } else if (isN360Overview) {
+        document.title = 'Nutricao360 · Documentação';
+      } else {
+        renderSwagger(route);
+      }
+      // fecha drawer mobile
+      sidebar.classList.remove('is-open');
+      backdrop.classList.remove('is-open');
+      // url hash
+      if (history.replaceState) {
+        history.replaceState(null, '', '#/' + route);
+      }
+      // scroll to top
+      window.scrollTo(0, 0);
+    }
+
+    function specFor(route) {
+      if (route === 'csat') return { spec: csat.spec, title: 'CSAT Plano Alimentar API', port: null };
+      const a = apps.find(x => x.key === route);
+      return a ? { spec: a.spec, title: a.label + ' API', port: a.port } : null;
+    }
+
+    function renderSwagger(route) {
+      const info = specFor(route);
+      if (!info) { setRoute('overview'); return; }
+      document.title = info.title + '';
+      document.getElementById('ribbonTitle').textContent = info.title;
+      const servers = info.spec.servers || [];
+      const meta = document.getElementById('ribbonMeta');
+      meta.innerHTML = '';
+      if (info.port) {
+        const b = document.createElement('span'); b.className = 'cf-badge';
+        b.textContent = 'porta ' + info.port; meta.appendChild(b);
+      }
+      const ver = document.createElement('span'); ver.className = 'cf-mono';
+      ver.textContent = 'OpenAPI ' + (info.spec.openapi || '3.0');
+      meta.appendChild(ver);
+      servers.slice(0, 2).forEach(s => {
+        const e = document.createElement('span'); e.className = 'cf-mono';
+        e.textContent = s.url;
+        meta.appendChild(e);
+      });
+      // mount swagger
+      window.ui = SwaggerUIBundle({
+        spec: info.spec,
+        dom_id: '#swagger-ui',
+        deepLinking: false,
+        presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+        layout: 'StandaloneLayout',
+        docExpansion: 'list',
+        defaultModelsExpandDepth: 1,
+        defaultModelExpandDepth: 1,
+        filter: true,
+        persistAuthorization: true,
+        tryItOutEnabled: route === 'csat',
+      });
+    }
+
+    // ---------- SEARCH ----------
+    document.getElementById('search').addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      document.querySelectorAll('.cf-sidebar a.cf-nav-item').forEach(el => {
+        const txt = el.textContent.toLowerCase();
+        el.style.display = !q || txt.includes(q) ? '' : 'none';
+      });
+    });
+
+    // ---------- INIT ----------
+    populateSidebar();
+    populateCards();
+
+    // markdown render
+    if (window.marked) {
+      marked.setOptions({ gfm: true, breaks: false, headerIds: true });
+      document.getElementById('overviewMd').innerHTML = marked.parse(data.overview);
+      document.getElementById('n360OverviewMd').innerHTML = marked.parse(data.nutri360Overview);
+    } else {
+      document.getElementById('overviewMd').textContent = data.overview;
+      document.getElementById('n360OverviewMd').textContent = data.nutri360Overview;
+    }
+
+    // delegated click for any [data-route]
+    document.body.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-route]');
+      if (!el) return;
+      e.preventDefault();
+      setRoute(el.dataset.route);
+    });
+
+    // initial route from hash
+    const initial = (location.hash || '').replace(/^#\\/?/, '') || 'overview';
+    setRoute(initial);
+    window.addEventListener('hashchange', () => {
+      const r = (location.hash || '').replace(/^#\\/?/, '') || 'overview';
+      if (r !== currentRoute) setRoute(r);
+    });
+  </script>
+</body>
+</html>
+`;
+
+fs.writeFileSync(OUT, html, 'utf8');
+const kb = (html.length / 1024).toFixed(1);
+console.log(`OK: index.html escrito (${kb} KB, ${apps.length + 1} specs embutidas)`);

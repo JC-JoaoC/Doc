@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HealthCheck Apps · Docs</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%95%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://rsms.me/" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <link rel="stylesheet" href="../assets/cofounder.css" />
+</head>
+<body>
+
+<header class="cf-topbar">
+  <button class="cf-icon cf-menu-toggle" id="cfMenuToggle" aria-label="Abrir menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <a class="cf-brand" href="../index.html">
+    <span class="cf-logo">⚕</span>
+    <span>HealthCheck Docs</span>
+  </a>
+  <div class="cf-crumbs">
+    <span class="cf-sep">/</span>
+    <span class="cf-current">HealthCheck</span>
+  </div>
+  <nav class="cf-nav">
+    <a href="../index.html">Overview</a>
+    <a href="./index.html" class="is-active">HealthCheck</a>
+    <a href="../nutricao360/index.html">Nutricao360</a>
+    <a href="../docs-csat/docs.html">CSAT</a>
+  </nav>
+  <div class="cf-spacer"></div>
+  <input id="cfSearch" class="cf-search" type="search" placeholder="Buscar app…" />
+  <button class="cf-icon" id="cfThemeToggle" aria-label="Alternar tema">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+  </button>
+</header>
+
+<div class="cf-backdrop"></div>
+
+<div class="cf-layout">
+  <aside class="cf-sidebar">
+    <div class="cf-group">Geral</div>
+    <a class="cf-nav-item" href="./index.html">Visão geral<span class="cf-tag">hub</span></a>
+    <a class="cf-nav-item" href="./API.md">API.md<span class="cf-tag">md</span></a>
+    <a class="cf-nav-item" href="./global.html">Spec global<span class="cf-tag">redoc</span></a>
+
+    <div class="cf-group">Análise clínica</div>
+    <a class="cf-nav-item" href="./cardiocheck/">cardiocheck<span class="cf-tag">3002</span></a>
+    <a class="cf-nav-item" href="./glicocheck/">glicocheck<span class="cf-tag">3003</span></a>
+    <a class="cf-nav-item" href="./hemocheck/">hemocheck<span class="cf-tag">3009</span></a>
+    <a class="cf-nav-item" href="./nutricheck/">nutricheck<span class="cf-tag">3004</span></a>
+    <a class="cf-nav-item" href="./osteocheck/">osteocheck<span class="cf-tag">3005</span></a>
+    <a class="cf-nav-item" href="./renalcheck/">renalcheck<span class="cf-tag">3006</span></a>
+    <a class="cf-nav-item" href="./sexcheck/">sexcheck<span class="cf-tag">3007</span></a>
+    <a class="cf-nav-item" href="./tireocheck/">tireocheck<span class="cf-tag">3008</span></a>
+
+    <div class="cf-group">Hábito e planejamento</div>
+    <a class="cf-nav-item" href="./aquaflow/">aquaflow<span class="cf-tag">3001</span></a>
+    <a class="cf-nav-item" href="./listaCompras/">listaCompras<span class="cf-tag">—</span></a>
+  </aside>
+
+  <main class="cf-main">
+    <article class="cf-content">
+      <p class="cf-eyebrow">HealthCheck Apps</p>
+      <h1>Documentação Swagger</h1>
+      <p class="cf-lede">
+        Monorepo com 10 aplicações web que compartilham autenticação, integração com a
+        plataforma Guru e o mesmo banco MySQL. Cada app expõe endpoints REST para callback
+        OAuth, webhook Guru e um gateway tRPC v10.
+      </p>
+
+      <div class="cf-pills">
+        <a class="cf-pill" href="./API.md">API.md</a>
+        <a class="cf-pill" href="./global.html">Spec global (Redoc)</a>
+        <a class="cf-pill" href="./openapi.yaml">openapi.yaml</a>
+      </div>
+
+      <h2>Análise clínica</h2>
+      <div class="cf-cards">
+        <a class="cf-card" href="./cardiocheck/">
+          <div class="cf-card-head"><h3>cardiocheck</h3><span class="cf-tag">3002</span></div>
+          <p>Análise cardiovascular — 10 exames lipídicos/inflamatórios, 5 razões e correlações de risco.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>
+        <a class="cf-card" href="./glicocheck/">
+          <div class="cf-card-head"><h3>glicocheck</h3><span class="cf-tag">3003</span></div>
+          <p>Análise glicêmica — glicose, resistência à insulina (HOMA-IR/Beta) e marcadores metabólicos.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>
+        <a class="cf-card" href="./hemocheck/">
+          <div class="cf-card-head"><h3>hemocheck</h3><span class="cf-tag">3009</span></div>
+          <p>Hemograma completo — séries vermelha, branca e plaquetária, razão NLR e correlações.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>
+        <a class="cf-card" href="./nutricheck/">
+          <div class="cf-card-head"><h3>nutricheck</h3><span class="cf-tag">3004</span></div>
+          <p>Análise nutricional — vitaminas, minerais, índices calculados e correlações.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>
+        <a class="cf-card" href="./osteocheck/">
+          <div class="cf-card-head"><h3>osteocheck</h3><span class="cf-tag">3005</span></div>
+          <p>Saúde óssea — 10 marcadores (cálcio, vitamina D, PTH, CTX, P1NP…), razões e correlações.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>
+        <a class="cf-card" href="./renalcheck/">
+          <div class="cf-card-head"><h3>renalcheck</h3><span class="cf-tag">3006</span></div>
+          <p>Função renal — 7 exames, razão BUN/creatinina, estadiamento DRC G1–G5.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>
+        <a class="cf-card" href="./sexcheck/">
+          <div class="cf-card-head"><h3>sexcheck</h3><span class="cf-tag">3007</span></div>
+          <p>Hormônios sexuais — perfis masculino e feminino, fase do ciclo, SOP, hipogonadismo.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>
+        <a class="cf-card" href="./tireocheck/">
+          <div class="cf-card-head"><h3>tireocheck</h3><span class="cf-tag">3008</span></div>
+          <p>Função tireoidiana — TSH, T4L, T3L, T3R, anti-TPO/TG, razão T3L/T3R e correlações clínicas.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>
+      </div>
+
+      <h2>Hábito e planejamento</h2>
+      <div class="cf-cards">
+        <a class="cf-card" href="./aquaflow/">
+          <div class="cf-card-head"><h3>aquaflow</h3><span class="cf-tag">3001</span></div>
+          <p>Hidratação personalizada — perfil, meta diária calculada e slots ao longo do dia.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>
+        <a class="cf-card" href="./listaCompras/">
+          <div class="cf-card-head"><h3>listaCompras</h3><span class="cf-tag">—</span></div>
+          <p>Plano alimentar via PDF + LLM, lista de compras com conversão automática e meal-prep.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>
+      </div>
+
+      <h2>Notas</h2>
+      <p>
+        Cada app expõe três famílias de endpoints: <code>/api/oauth/callback</code> (callback OAuth),
+        <code>/api/webhook/guru</code> (webhook de assinatura) e
+        <code>/api/trpc/{router}.{procedure}</code> (gateway tRPC v10). A autenticação é feita por
+        cookie HTTP-only <code>__session_&lt;APP_ID&gt;</code>.
+      </p>
+    </article>
+  </main>
+</div>
+
+<script src="../assets/cofounder.js"></script>
+</body>
+</html>

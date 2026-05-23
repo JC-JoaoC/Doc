@@ -1,0 +1,711 @@
+openapi: 3.1.0
+info:
+  title: listaCompras API
+  version: 1.0.0
+  description: |
+    **listaCompras** — Planejamento nutricional e listas de compras.
+
+    Recebe um PDF de plano alimentar, extrai sua estrutura via LLM (paciente,
+    refeições, opções, equivalentes, alimentos proibidos/riscados), permite ao
+    usuário escolher os alimentos por categoria, gera uma lista de compras semanal
+    com conversão automática de quantidades (cozido → cru/in natura) e, opcionalmente,
+    orientações personalizadas de meal-prep.
+
+    - **Tabelas do app:** `mealPlans`, `shoppingLists`
+    - **Auth:** cookie `__session_lista` (JWT HS256, 1 ano)
+
+    Toda a API de negócio é exposta via tRPC v10 sob `/api/trpc/{router}.{procedure}`.
+servers:
+  - url: http://localhost:3010
+    description: Desenvolvimento
+tags:
+  - name: Auth (REST)
+  - name: Webhooks
+  - name: tRPC - system
+  - name: tRPC - auth
+  - name: tRPC - mealPlan
+    description: Upload de PDF, extração via LLM e leitura de planos alimentares.
+  - name: tRPC - shoppingList
+    description: Geração e histórico de listas de compras + orientações de meal-prep.
+paths:
+  /api/oauth/callback:
+    get:
+      tags: [Auth (REST)]
+      summary: Callback OAuth
+      parameters:
+        - { in: query, name: code, required: true, schema: { type: string } }
+        - { in: query, name: state, required: true, schema: { type: string } }
+      responses:
+        "302": { description: Redireciona para `/` com cookie de sessão. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/ServerError" }
+  /api/webhook/guru:
+    get:
+      tags: [Webhooks]
+      summary: Healthcheck do webhook
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string, example: guru-webhook }
+    post:
+      tags: [Webhooks]
+      summary: Evento de assinatura Guru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuruWebhookPayload" }
+      responses:
+        "200": { $ref: "#/components/responses/WebhookOk" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/trpc/system.health:
+    get:
+      tags: [tRPC - system]
+      summary: system.health (query, public)
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses: { "200": { $ref: "#/components/responses/TrpcOk" } }
+  /api/trpc/system.notifyOwner:
+    post:
+      tags: [tRPC - system]
+      summary: system.notifyOwner (mutation, admin)
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                content: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/TrpcOk" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/trpc/auth.me:
+    get:
+      tags: [tRPC - auth]
+      summary: auth.me (query, public)
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            oneOf:
+                              - $ref: "#/components/schemas/User"
+                              - type: "null"
+  /api/trpc/auth.logout:
+    post:
+      tags: [tRPC - auth]
+      summary: auth.logout (mutation, public)
+      responses: { "200": { $ref: "#/components/responses/SuccessTrue" } }
+  /api/trpc/auth.emailAccess:
+    post:
+      tags: [tRPC - auth]
+      summary: auth.emailAccess (mutation, public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties: { email: { type: string, format: email } }
+      responses: { "200": { $ref: "#/components/responses/EmailAccessOk" } }
+  /api/trpc/auth.checkAccess:
+    get:
+      tags: [tRPC - auth]
+      summary: auth.checkAccess (query, public)
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses: { "200": { $ref: "#/components/responses/TrpcOk" } }
+
+  /api/trpc/mealPlan.upload:
+    post:
+      tags: [tRPC - mealPlan]
+      summary: mealPlan.upload (mutation, protected)
+      description: |
+        Recebe um PDF em base64. Usa LLM com vision para extrair a estrutura
+        do plano alimentar (paciente, refeições, opções, equivalentes, proibidos,
+        riscados). Persiste em `mealPlans` e devolve o `planId` + os dados.
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileBase64, fileName]
+              properties:
+                fileBase64: { type: string, description: "PDF codificado em base64." }
+                fileName: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              planId: { type: integer }
+                              extractedData: { $ref: "#/components/schemas/ExtractedPlanData" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/trpc/mealPlan.get:
+    get:
+      tags: [tRPC - mealPlan]
+      summary: mealPlan.get (query, protected)
+      description: Recupera um plano por `id` (valida posse).
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data: { $ref: "#/components/schemas/MealPlan" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Plano não encontrado ou não pertence ao usuário.
+
+  /api/trpc/mealPlan.getCategories:
+    get:
+      tags: [tRPC - mealPlan]
+      summary: mealPlan.getCategories (query, protected)
+      description: |
+        Categorias de alimentos do plano (já excluindo proibidos/riscados) para
+        o usuário escolher. Acompanha `minRecommended`/`maxRecommended` (varia por
+        tipo — proteínas 2–5, carbos 2–4, vegetais 3–8 etc.).
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: "#/components/schemas/CategoryForSelection" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/trpc/mealPlan.getPlanFoods:
+    get:
+      tags: [tRPC - mealPlan]
+      summary: mealPlan.getPlanFoods (query, protected)
+      description: |
+        Alimentos do plano agrupados por categoria, com sugestões de substituição
+        nutricional, fator de conversão (cozido→cru) e quantidades semanais
+        calculadas.
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: "#/components/schemas/PlanCategoryWithFoods" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/trpc/mealPlan.list:
+    get:
+      tags: [tRPC - mealPlan]
+      summary: mealPlan.list (query, protected)
+      description: Histórico de planos do usuário (ordem decrescente por data).
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: "#/components/schemas/MealPlan" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/trpc/shoppingList.generate:
+    post:
+      tags: [tRPC - shoppingList]
+      summary: shoppingList.generate (mutation, protected)
+      description: |
+        Gera lista de compras semanal a partir dos alimentos escolhidos por
+        categoria. Aplica fatores de conversão (carnes ×2, carbos ÷2,
+        leguminosas ÷2, tubérculos ×0.85–0.90, vegetais "à vontade"), agrupa
+        itens, filtra suplementos/água, deduplica e arredonda para unidades
+        práticas (kg, g, unidades).
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mealPlanId, selectedFoods]
+              properties:
+                mealPlanId: { type: integer }
+                selectedFoods:
+                  type: object
+                  description: "Mapa `categoryName → string[]` com os alimentos escolhidos."
+                  additionalProperties:
+                    type: array
+                    items: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              listId: { type: integer }
+                              generatedList: { $ref: "#/components/schemas/GeneratedShoppingList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/trpc/shoppingList.generateFromConfirmed:
+    post:
+      tags: [tRPC - shoppingList]
+      summary: shoppingList.generateFromConfirmed (mutation, protected)
+      description: |
+        Variante de `generate` que aceita um array de alimentos já confirmados
+        (incluindo substitutos com referência ao alimento original).
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mealPlanId, confirmedFoods]
+              properties:
+                mealPlanId: { type: integer }
+                confirmedFoods:
+                  type: array
+                  items: { $ref: "#/components/schemas/ConfirmedFoodItem" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              listId: { type: integer }
+                              generatedList: { $ref: "#/components/schemas/GeneratedShoppingList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/trpc/shoppingList.get:
+    get:
+      tags: [tRPC - shoppingList]
+      summary: shoppingList.get (query, protected)
+      description: Recupera uma lista por `id` (valida posse).
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data: { $ref: "#/components/schemas/ShoppingList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Lista não encontrada ou não pertence ao usuário.
+
+  /api/trpc/shoppingList.history:
+    get:
+      tags: [tRPC - shoppingList]
+      summary: shoppingList.history (query, protected)
+      description: Histórico de listas (ordem decrescente por data).
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: "#/components/schemas/ShoppingList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/trpc/shoppingList.generateOrientations:
+    post:
+      tags: [tRPC - shoppingList]
+      summary: shoppingList.generateOrientations (mutation, protected)
+      description: |
+        Gera 5 seções de orientações personalizadas de meal-prep (rotina,
+        preparo semanal, porcionamento, estratégia da semana, o que congelar)
+        baseadas na lista e no plano. Resultado persistido em `shoppingLists.orientations`.
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [listId, mealPlanId]
+              properties:
+                listId: { type: integer }
+                mealPlanId: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data: { $ref: "#/components/schemas/GeneratedOrientations" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    sessionCookie: { type: apiKey, in: cookie, name: __session_lista }
+  parameters:
+    TrpcInput:
+      in: query
+      name: input
+      schema: { type: string }
+      description: Input do procedure serializado como JSON URL-encoded (tRPC v10).
+  responses:
+    BadRequest:
+      description: Parâmetros inválidos.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Unauthorized:
+      description: Não autenticado.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Forbidden:
+      description: Requer role de admin.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    ServerError:
+      description: Erro interno.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    TrpcOk:
+      description: OK
+      content: { application/json: { schema: { $ref: "#/components/schemas/TrpcResult" } } }
+    WebhookOk:
+      description: Evento aceito.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean }
+              message: { type: string }
+    EmailAccessOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/TrpcResult"
+              - properties:
+                  result:
+                    properties:
+                      data:
+                        oneOf:
+                          - type: object
+                            properties:
+                              success: { const: true }
+                              user: { $ref: "#/components/schemas/User" }
+                          - type: object
+                            properties:
+                              success: { const: false }
+                              error: { type: string }
+    SuccessTrue:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/TrpcResult"
+              - properties:
+                  result:
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success: { type: boolean, example: true }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties: { error: { type: string } }
+    User:
+      type: object
+      required: [id, openId, role, createdAt, updatedAt, lastSignedIn]
+      properties:
+        id: { type: integer }
+        openId: { type: string }
+        name: { type: string, nullable: true }
+        email: { type: string, format: email, nullable: true }
+        loginMethod: { type: string, nullable: true }
+        role: { type: string, enum: [user, admin] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        lastSignedIn: { type: string, format: date-time }
+    TrpcResult:
+      type: object
+      properties:
+        result:
+          type: object
+          properties: { data: {} }
+    GuruWebhookPayload:
+      type: object
+      required: [api_token]
+      properties:
+        api_token: { type: string }
+        id: { type: string }
+        event: { type: string }
+        status: { type: string }
+        contact:
+          type: object
+          properties:
+            email: { type: string, format: email }
+            name: { type: string }
+        product:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+
+    FoodItem:
+      type: object
+      required: [name, quantity, unit]
+      properties:
+        name: { type: string }
+        quantity: { type: string, description: "Texto livre (ex.: \"100\", \"1/2\")." }
+        unit: { type: string, example: "g" }
+        grams: { type: number, nullable: true }
+        isStriked: { type: boolean }
+    MealOption:
+      type: object
+      properties:
+        foods:
+          type: array
+          items: { $ref: "#/components/schemas/FoodItem" }
+        preparation: { type: string }
+    Meal:
+      type: object
+      properties:
+        name: { type: string, example: "Almoço" }
+        frequency: { type: string }
+        options:
+          type: array
+          items: { $ref: "#/components/schemas/MealOption" }
+    EquivalentCategory:
+      type: object
+      properties:
+        name: { type: string }
+        items:
+          type: array
+          items: { type: string }
+    ExtractedPlanData:
+      type: object
+      properties:
+        patientName: { type: string }
+        meals:
+          type: array
+          items: { $ref: "#/components/schemas/Meal" }
+        equivalents:
+          type: array
+          items: { $ref: "#/components/schemas/EquivalentCategory" }
+        allowedSeasonings:
+          type: array
+          items: { type: string }
+        forbiddenFoods:
+          type: array
+          items: { type: string }
+        strikedFoods:
+          type: array
+          items: { type: string }
+    CategoryForSelection:
+      type: object
+      properties:
+        categoryName: { type: string }
+        items:
+          type: array
+          items: { type: string }
+        minRecommended: { type: integer }
+        maxRecommended: { type: integer }
+    SubstitutionSuggestion:
+      type: object
+      properties:
+        name: { type: string }
+        category: { type: string }
+    PlanFoodItem:
+      type: object
+      properties:
+        name: { type: string }
+        category: { type: string }
+        meals:
+          type: array
+          items: { type: string }
+        suggestions:
+          type: array
+          items: { $ref: "#/components/schemas/SubstitutionSuggestion" }
+        weeklyQuantity: { type: string, example: "1.2 kg" }
+        unit: { type: string }
+        dailyGrams: { type: number }
+        mealCount: { type: integer }
+        conversionFactor: { type: number }
+        useUnits: { type: boolean }
+        dailyUnits: { type: number }
+    PlanCategoryWithFoods:
+      type: object
+      properties:
+        categoryName: { type: string }
+        foods:
+          type: array
+          items: { $ref: "#/components/schemas/PlanFoodItem" }
+    ConfirmedFoodItem:
+      type: object
+      required: [name, category, isSubstitute]
+      properties:
+        name: { type: string }
+        category: { type: string }
+        isSubstitute: { type: boolean }
+        replacesFood: { type: string }
+        meals:
+          type: array
+          items: { type: string }
+    ShoppingItem:
+      type: object
+      properties:
+        name: { type: string }
+        weeklyQuantity: { type: string }
+        unit: { type: string }
+        category: { type: string }
+        notes: { type: string }
+        isSubstitution: { type: boolean }
+        substitutesFood: { type: string }
+        substitutionMeals:
+          type: array
+          items: { type: string }
+    GeneratedShoppingList:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ShoppingItem" }
+        generatedAt: { type: integer, description: "Timestamp em ms." }
+    OrientationSection:
+      type: object
+      properties:
+        title: { type: string }
+        content: { type: string }
+    GeneratedOrientations:
+      type: object
+      properties:
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/OrientationSection" }
+        generatedAt: { type: integer }
+    MealPlan:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        patientName: { type: string, nullable: true }
+        pdfUrl: { type: string, nullable: true }
+        extractedData:
+          allOf:
+            - $ref: "#/components/schemas/ExtractedPlanData"
+            - { nullable: true }
+        createdAt: { type: string, format: date-time }
+    ShoppingList:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        mealPlanId: { type: integer }
+        selectedFoods:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+          nullable: true
+        generatedList:
+          allOf:
+            - $ref: "#/components/schemas/GeneratedShoppingList"
+            - { nullable: true }
+        orientations:
+          allOf:
+            - $ref: "#/components/schemas/GeneratedOrientations"
+            - { nullable: true }
+        name: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }

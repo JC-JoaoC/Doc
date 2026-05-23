@@ -1,0 +1,203 @@
+openapi: 3.1.0
+info:
+  title: portal API
+  version: 1.0.0
+  description: |
+    **portal** — Portal do cliente da Nutricao360.
+
+    Entrada por e-mail (sem login). Verifica assinatura ativa em Hotmart/Guru pelo
+    `UnifiedSubscriptionService` e devolve os documentos aprovados/pendentes do
+    cliente, organizados por etapa (planos alimentares, exames, relatórios e
+    suplementos). Também consulta o status de avaliação CSAT na API externa
+    `api.nutricao360.com`.
+
+    - **Porta dev:** 3008
+    - **Auth pública:** verificação de assinatura por e-mail (sem cookies)
+    - **API externa consumida:** `https://api.nutricao360.com/csat/...`
+servers:
+  - url: http://localhost:3008
+    description: Desenvolvimento
+  - url: https://portal.nutricao360.com
+    description: Produção
+tags:
+  - name: Meta
+    description: Spec OpenAPI exposta pelo app.
+  - name: Auth
+    description: Verificação de e-mail/assinatura.
+  - name: Documents
+    description: Documentos aprovados e pendências por etapa.
+  - name: CSAT
+    description: Status de avaliação do plano alimentar (API externa).
+paths:
+  /api/swagger:
+    get:
+      tags: [Meta]
+      summary: OpenAPI spec do app portal
+      responses:
+        "200":
+          description: Spec OpenAPI 3.1 em JSON.
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/portal/verify-email:
+    get:
+      tags: [Auth]
+      summary: Verifica assinatura ativa por e-mail
+      description: |
+        Valida o e-mail contra `UnifiedSubscriptionService` (Hotmart + Guru) e
+        retorna dados básicos do usuário se a assinatura estiver ativa.
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema: { type: string, format: email }
+      responses:
+        "200":
+          description: Usuário e produtos ativos.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasAccess: { type: boolean, example: true }
+                  user:
+                    $ref: "#/components/schemas/PortalUser"
+                  subscriptions:
+                    type: array
+                    items: { $ref: "#/components/schemas/Subscription" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/portal/evaluation-status:
+    get:
+      tags: [CSAT]
+      summary: Status de avaliação CSAT do plano alimentar
+      description: |
+        Consulta a API externa de CSAT (`api.nutricao360.com`) e retorna
+        `evaluated | pending | unknown`. Falhas externas retornam sempre `200`
+        com `status: unknown` para não bloquear o portal.
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema: { type: string, format: email }
+      responses:
+        "200":
+          description: Status CSAT do cliente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [evaluated, pending, unknown]
+                  lastEvaluatedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/documents:
+    post:
+      tags: [Documents]
+      summary: Lista documentos aprovados e pendências do cliente
+      description: |
+        Recebe o e-mail no body, valida a assinatura e retorna até **2 itens
+        APPROVED** por categoria (meal plans, exams, reports, supplements),
+        cada um com `etapa` (1 ou 2). Inclui também flags de pendências por
+        etapa: `etapa1Pending`, `etapa2Pending` (planos/relatórios em
+        `PENDING` ou `SCHEDULED`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: Documentos do cliente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: "#/components/schemas/PortalUser" }
+                  mealPlans:
+                    type: array
+                    items: { $ref: "#/components/schemas/Document" }
+                  exams:
+                    type: array
+                    items: { $ref: "#/components/schemas/Document" }
+                  reports:
+                    type: array
+                    items: { $ref: "#/components/schemas/Document" }
+                  supplements:
+                    type: array
+                    items: { $ref: "#/components/schemas/Document" }
+                  etapa1Pending: { type: boolean }
+                  etapa2Pending: { type: boolean }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+components:
+  responses:
+    BadRequest:
+      description: Parâmetros inválidos.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Assinatura inativa ou não encontrada.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Recurso inexistente.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ServerError:
+      description: Erro interno.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+    PortalUser:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string, nullable: true }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+    Subscription:
+      type: object
+      properties:
+        provider: { type: string, enum: [hotmart, guru, firepay] }
+        product: { type: string }
+        status: { type: string }
+        expiresAt: { type: string, format: date-time, nullable: true }
+    Document:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        analysisStatus:
+          type: string
+          enum: [PENDING, SCHEDULED, APPROVED, REJECTED]
+        etapa: { type: integer, enum: [1, 2] }
+        approvedAt: { type: string, format: date-time, nullable: true }
+        downloadUrl: { type: string, nullable: true }

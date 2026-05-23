@@ -1,0 +1,441 @@
+openapi: 3.1.0
+info:
+  title: exames API
+  version: 1.0.0
+  description: |
+    **exames** — App de análise de exames laboratoriais da Nutricao360.
+
+    Upload de PDFs (OCR via Mistral) ou texto, análise via IA (OpenRouter) com
+    RAG sobre `exam_reference`, download, **SSO por token** e integrações
+    Hotmart/Guru. Persiste `Exam` com `analysisStatus` (`PENDING` → `APPROVED`).
+
+    - **Porta dev:** 3002
+    - **Auth:** NextAuth (sessão) + e-mail (upload público) + SSOToken
+servers:
+  - url: http://localhost:3002
+    description: Desenvolvimento
+  - url: https://exames.nutricao360.com
+    description: Produção
+tags:
+  - name: Meta
+    description: Spec OpenAPI exposta pelo app.
+  - name: Auth
+    description: Registro, NextAuth e SSO por token.
+  - name: Exams
+    description: Upload, listagem e análise de exames.
+  - name: Webhooks
+    description: Eventos Guru e Hotmart.
+paths:
+  /api/swagger:
+    get:
+      tags: [Meta]
+      summary: OpenAPI spec do app exames
+      responses:
+        "200":
+          description: Spec OpenAPI 3.1 em JSON.
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Registra usuário (bcrypt + profile vazio)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, phone, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                phone: { type: string }
+                password: { type: string, minLength: 6 }
+      responses:
+        "201":
+          description: Usuário criado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  email: { type: string, format: email }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/auth/{...nextauth}:
+    get:
+      tags: [Auth]
+      summary: NextAuth catch-all
+      parameters:
+        - in: path
+          name: nextauth
+          required: true
+          schema: { type: array, items: { type: string } }
+          style: simple
+      responses:
+        "200": { description: OK }
+        "302": { description: Redirect }
+    post:
+      tags: [Auth]
+      summary: NextAuth catch-all (POST)
+      parameters:
+        - in: path
+          name: nextauth
+          required: true
+          schema: { type: array, items: { type: string } }
+          style: simple
+      responses:
+        "200": { description: OK }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/sso/signin:
+    post:
+      tags: [Auth]
+      summary: Valida SSOToken e emite JWT (30 dias)
+      description: Valida `SSOToken` e define cookie de sessão NextAuth.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        "200":
+          description: Sessão emitida.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/sso/validate-token:
+    post:
+      tags: [Auth]
+      summary: Valida SSOToken (não emite JWT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        "200":
+          description: Usuário associado ao token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/exams:
+    get:
+      tags: [Exams]
+      summary: Lista exames APPROVED do usuário autenticado
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Lista de exames.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Exam" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/exams/{id}:
+    get:
+      tags: [Exams]
+      summary: Detalhe de um exame do usuário
+      security:
+        - sessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Exame.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Exam" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/exams/stats:
+    get:
+      tags: [Exams]
+      summary: Stats agregadas do usuário
+      description: Totais, pendentes, hoje e exames recentes.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Estatísticas.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/exams/upload:
+    post:
+      tags: [Exams]
+      summary: Upload de exame (PDF OCR ou texto)
+      description: |
+        Valida assinatura por e-mail (`UnifiedSubscriptionService`), aplica
+        rate-limit por usuário, persiste `Exam` (PENDING) e dispara análise em
+        background. Aceita 2 formatos:
+
+        - **JSON**: `{ type: 'text', fileName, extractedText, clientName, clientPhone, clientEmail, stage? }`
+        - **multipart**: `clientName, clientPhone, clientEmail, stage?, file0[, file1]`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, fileName, extractedText, clientName, clientPhone, clientEmail]
+              properties:
+                type: { type: string, enum: [text] }
+                fileName: { type: string }
+                extractedText: { type: string }
+                clientName: { type: string }
+                clientPhone: { type: string }
+                clientEmail: { type: string, format: email }
+                stage: { type: integer, enum: [1, 2] }
+          multipart/form-data:
+            schema:
+              type: object
+              required: [clientName, clientPhone, clientEmail, file0]
+              properties:
+                clientName: { type: string }
+                clientPhone: { type: string }
+                clientEmail: { type: string, format: email }
+                stage: { type: integer, enum: [1, 2] }
+                file0: { type: string, format: binary }
+                file1: { type: string, format: binary }
+      responses:
+        "200":
+          description: Upload aceito; análise em background.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exam: { $ref: "#/components/schemas/Exam" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429":
+          description: Rate-limit excedido.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/exams/analyze:
+    post:
+      tags: [Exams]
+      summary: Analisa exame previamente salvo via IA + RAG
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [examId]
+              properties:
+                examId: { type: string }
+      responses:
+        "200":
+          description: Análise gerada (status volta a PENDING para aprovação admin).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Exam" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/webhook/guru:
+    get:
+      tags: [Webhooks]
+      summary: Healthcheck do webhook Guru
+      responses:
+        "200": { description: OK }
+    post:
+      tags: [Webhooks]
+      summary: Evento de assinatura Guru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuruWebhookPayload" }
+      responses:
+        "200": { $ref: "#/components/responses/WebhookOk" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/webhooks/hotmart:
+    post:
+      tags: [Webhooks]
+      summary: Evento de assinatura Hotmart
+      description: |
+        Valida `x-hotmart-hottok` e mapeia o evento para um status interno
+        (`active`, `cancelled`, `refunded`, `inactive`, `pending`).
+      parameters:
+        - in: header
+          name: x-hotmart-hottok
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HotmartWebhookPayload" }
+      responses:
+        "200": { description: Evento processado. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/webhooks/hotmart/latest:
+    get:
+      tags: [Webhooks]
+      summary: Lista 10 últimos webhooks + assinaturas Hotmart
+      parameters:
+        - in: header
+          name: x-admin-token
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Auditoria.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  webhooks:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  subscriptions:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+    hotmartHottok:
+      type: apiKey
+      in: header
+      name: x-hotmart-hottok
+    adminToken:
+      type: apiKey
+      in: header
+      name: x-admin-token
+  responses:
+    BadRequest:
+      description: Parâmetros inválidos.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Sessão/SSOToken/api_token inválido.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Assinatura inativa.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Exame inexistente.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ServerError:
+      description: Erro interno.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    WebhookOk:
+      description: Evento aceito.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string, nullable: true }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+    Exam:
+      type: object
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        fileName: { type: string }
+        extractedText: { type: string }
+        analysis: { type: string, nullable: true }
+        analysisStatus:
+          type: string
+          enum: [PENDING, SCHEDULED, APPROVED, REJECTED]
+        analysisStatusBy: { type: string, nullable: true }
+        stage: { type: integer, enum: [1, 2] }
+        createdAt: { type: string, format: date-time }
+        approvedAt: { type: string, format: date-time, nullable: true }
+    GuruWebhookPayload:
+      type: object
+      required: [api_token]
+      properties:
+        api_token: { type: string }
+        id: { type: string }
+        event: { type: string }
+        status: { type: string }
+        contact:
+          type: object
+          properties:
+            email: { type: string, format: email }
+        product:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+    HotmartWebhookPayload:
+      type: object
+      properties:
+        event: { type: string }
+        data:
+          type: object
+          additionalProperties: true

@@ -1,0 +1,497 @@
+openapi: 3.1.0
+info:
+  title: sexcheck API
+  version: 1.0.0
+  description: |
+    **sexcheck** — Análise hormonal sexual masculina e feminina.
+
+    Suporta 6 exames masculinos (testosterona total/livre, estradiol, SHBG,
+    DHEA-S, prolactina) e 9 femininos (estradiol, progesterona, LH, FSH,
+    testosterona total/livre, SHBG, DHEA-S, prolactina) com faixas dependentes
+    de sexo e fase do ciclo menstrual. Calcula 3 razões (Test/SHBG masculino e
+    feminino, Estradiol/Test masculino) e detecta 11 padrões clínicos (SOP,
+    hipogonadismo, hiperprolactinemia, reserva ovariana baixa, hiperandrogenismo
+    etc.).
+
+    - **Porta dev:** 3007
+    - **Domínio:** https://sexcheck.nutricao360.com/
+    - **Tabela do app:** `sex_analyses`
+    - **Auth:** cookie `__session_sex` (JWT HS256, 1 ano)
+servers:
+  - url: http://localhost:3007
+    description: Desenvolvimento
+  - url: https://sexcheck.nutricao360.com
+    description: Produção
+tags:
+  - name: Auth (REST)
+  - name: Webhooks
+  - name: tRPC - system
+  - name: tRPC - auth
+  - name: tRPC - analysis
+    description: Preview, persistência e histórico de análises hormonais sexuais.
+paths:
+  /api/oauth/callback:
+    get:
+      tags: [Auth (REST)]
+      summary: Callback OAuth
+      parameters:
+        - { in: query, name: code, required: true, schema: { type: string } }
+        - { in: query, name: state, required: true, schema: { type: string } }
+      responses:
+        "302": { description: Redireciona para `/` com cookie de sessão. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/ServerError" }
+  /api/webhook/guru:
+    get:
+      tags: [Webhooks]
+      summary: Healthcheck do webhook
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string, example: guru-webhook }
+    post:
+      tags: [Webhooks]
+      summary: Evento de assinatura Guru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuruWebhookPayload" }
+      responses:
+        "200": { $ref: "#/components/responses/WebhookOk" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/trpc/system.health:
+    get:
+      tags: [tRPC - system]
+      summary: system.health (query, public)
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200": { $ref: "#/components/responses/TrpcOk" }
+  /api/trpc/system.notifyOwner:
+    post:
+      tags: [tRPC - system]
+      summary: system.notifyOwner (mutation, admin)
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                content: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/TrpcOk" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/trpc/auth.me:
+    get:
+      tags: [tRPC - auth]
+      summary: auth.me (query, public)
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            oneOf:
+                              - $ref: "#/components/schemas/User"
+                              - type: "null"
+  /api/trpc/auth.logout:
+    post:
+      tags: [tRPC - auth]
+      summary: auth.logout (mutation, public)
+      responses:
+        "200": { $ref: "#/components/responses/SuccessTrue" }
+  /api/trpc/auth.emailAccess:
+    post:
+      tags: [tRPC - auth]
+      summary: auth.emailAccess (mutation, public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties: { email: { type: string, format: email } }
+      responses:
+        "200": { $ref: "#/components/responses/EmailAccessOk" }
+  /api/trpc/auth.checkAccess:
+    get:
+      tags: [tRPC - auth]
+      summary: auth.checkAccess (query, public)
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200": { $ref: "#/components/responses/TrpcOk" }
+
+  /api/trpc/analysis.preview:
+    post:
+      tags: [tRPC - analysis]
+      summary: analysis.preview (mutation, public)
+      description: |
+        Processa exames e retorna `examResults`, `ratios`, `correlations` e `summary`
+        **sem persistir**. Disponível publicamente para demonstração. O campo
+        `sex` é obrigatório para selecionar faixas masculinas ou femininas.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sex, exams]
+              properties:
+                sex: { type: string, enum: [masculino, feminino] }
+                exams: { $ref: "#/components/schemas/ExamMap" }
+      responses:
+        "200": { $ref: "#/components/responses/AnalysisDataOk" }
+  /api/trpc/analysis.save:
+    post:
+      tags: [tRPC - analysis]
+      summary: analysis.save (mutation, protected)
+      description: Processa, persiste em `sex_analyses` e retorna análise completa com `id`.
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [examDate, sex, exams]
+              properties:
+                examDate: { type: integer, description: "Timestamp em ms." }
+                sex: { type: string, enum: [masculino, feminino] }
+                exams: { $ref: "#/components/schemas/ExamMap" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            allOf:
+                              - $ref: "#/components/schemas/AnalysisData"
+                              - properties: { id: { type: integer } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/trpc/analysis.getById:
+    get:
+      tags: [tRPC - analysis]
+      summary: analysis.getById (query, protected)
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            oneOf:
+                              - allOf:
+                                  - $ref: "#/components/schemas/AnalysisData"
+                                  - properties:
+                                      id: { type: integer }
+                                      examDate: { type: integer }
+                                      sex: { type: string, enum: [masculino, feminino] }
+                                      rawExams: { $ref: "#/components/schemas/ExamMap" }
+                              - type: "null"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/trpc/analysis.list:
+    get:
+      tags: [tRPC - analysis]
+      summary: analysis.list (query, protected)
+      description: Resumos (contadores por status) das análises do usuário.
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: "#/components/schemas/AnalysisSummary" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/trpc/analysis.evolution:
+    get:
+      tags: [tRPC - analysis]
+      summary: analysis.evolution (query, protected)
+      description: Série temporal de valores normalizados por exame/razão (gráfico).
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: "#/components/schemas/EvolutionPoint" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/trpc/analysis.delete:
+    post:
+      tags: [tRPC - analysis]
+      summary: analysis.delete (mutation, protected)
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [id], properties: { id: { type: integer } } }
+      responses:
+        "200": { $ref: "#/components/responses/SuccessBool" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    sessionCookie: { type: apiKey, in: cookie, name: __session_sex }
+  parameters:
+    TrpcInput:
+      in: query
+      name: input
+      schema: { type: string }
+      description: Input do procedure serializado como JSON URL-encoded (tRPC v10).
+  responses:
+    BadRequest:
+      description: Parâmetros inválidos.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Unauthorized:
+      description: Não autenticado.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Forbidden:
+      description: Requer role de admin.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    ServerError:
+      description: Erro interno.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    TrpcOk:
+      description: OK
+      content: { application/json: { schema: { $ref: "#/components/schemas/TrpcResult" } } }
+    WebhookOk:
+      description: Evento aceito.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean }
+              message: { type: string }
+    EmailAccessOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/TrpcResult"
+              - properties:
+                  result:
+                    properties:
+                      data:
+                        oneOf:
+                          - type: object
+                            properties:
+                              success: { const: true }
+                              user: { $ref: "#/components/schemas/User" }
+                          - type: object
+                            properties:
+                              success: { const: false }
+                              error: { type: string }
+    SuccessTrue:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/TrpcResult"
+              - properties:
+                  result:
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success: { type: boolean, example: true }
+    SuccessBool:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/TrpcResult"
+              - properties:
+                  result:
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success: { type: boolean }
+    AnalysisDataOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/TrpcResult"
+              - properties:
+                  result:
+                    properties:
+                      data: { $ref: "#/components/schemas/AnalysisData" }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties: { error: { type: string } }
+    User:
+      type: object
+      required: [id, openId, role, createdAt, updatedAt, lastSignedIn]
+      properties:
+        id: { type: integer }
+        openId: { type: string }
+        name: { type: string, nullable: true }
+        email: { type: string, format: email, nullable: true }
+        loginMethod: { type: string, nullable: true }
+        role: { type: string, enum: [user, admin] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        lastSignedIn: { type: string, format: date-time }
+    TrpcResult:
+      type: object
+      properties:
+        result:
+          type: object
+          properties: { data: {} }
+    GuruWebhookPayload:
+      type: object
+      required: [api_token]
+      properties:
+        api_token: { type: string }
+        id: { type: string }
+        event: { type: string }
+        status: { type: string }
+        contact:
+          type: object
+          properties:
+            email: { type: string, format: email }
+            name: { type: string }
+        product:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+    ExamId:
+      type: string
+      enum:
+        [testosteronaTotalM, testosteronaLivreM, estradiolM, shbgM, dheas,
+         prolactina, estradiolF, progesterona, lh, fsh, testosteronaTotalF,
+         testosteronaLivreF, shbgF, dheasF, prolactinaF]
+    RatioId:
+      type: string
+      enum: [testShbgM, estradiolTestM, testShbgF]
+    TrafficLight:
+      type: string
+      enum: [optimal, attention, alert]
+    ExamValue:
+      type: object
+      required: [value, unit]
+      properties:
+        value: { type: number }
+        unit: { type: string, example: "ng/dL" }
+    ExamMap:
+      type: object
+      description: Mapa `{ examId -> { value, unit } }`. Chaves devem ser `ExamId`.
+      additionalProperties: { $ref: "#/components/schemas/ExamValue" }
+    ExamResult:
+      type: object
+      properties:
+        id: { $ref: "#/components/schemas/ExamId" }
+        name: { type: string }
+        value: { type: number }
+        unit: { type: string }
+        normalizedValue: { type: number }
+        status: { $ref: "#/components/schemas/TrafficLight" }
+        optimalRange: { type: string }
+        description: { type: string }
+        importance: { type: string }
+    RatioResult:
+      type: object
+      properties:
+        id: { $ref: "#/components/schemas/RatioId" }
+        name: { type: string }
+        formula: { type: string }
+        value: { type: number }
+        status: { $ref: "#/components/schemas/TrafficLight" }
+        optimalRange: { type: string }
+        description: { type: string }
+    Correlation:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        severity: { $ref: "#/components/schemas/TrafficLight" }
+        relatedExams:
+          type: array
+          items: { $ref: "#/components/schemas/ExamId" }
+    AnalysisData:
+      type: object
+      properties:
+        examResults: { type: array, items: { $ref: "#/components/schemas/ExamResult" } }
+        ratios: { type: array, items: { $ref: "#/components/schemas/RatioResult" } }
+        correlations: { type: array, items: { $ref: "#/components/schemas/Correlation" } }
+        summary: { type: array, items: { type: string } }
+    AnalysisSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        examDate: { type: integer }
+        sex: { type: string, enum: [masculino, feminino] }
+        examCount: { type: integer }
+        alertCount: { type: integer }
+        attentionCount: { type: integer }
+        optimalCount: { type: integer }
+        correlationCount: { type: integer }
+    EvolutionPoint:
+      type: object
+      properties:
+        examDate: { type: integer }
+        sex: { type: string, enum: [masculino, feminino] }
+        values:
+          type: object
+          additionalProperties: { type: number, nullable: true }

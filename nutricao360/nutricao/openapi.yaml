@@ -1,0 +1,303 @@
+openapi: 3.1.0
+info:
+  title: nutricao API
+  version: 1.0.0
+  description: |
+    **nutricao** — App de análise nutricional da Nutricao360.
+
+    Reconhece refeições a partir de **foto** (modelos de visão da OpenRouter)
+    ou **lista textual de alimentos**, calcula calorias e macros via segunda
+    chamada de IA, complementa com RAG (`nutrition_reference`) e persiste em
+    `NutritionLog`. Histórico/estatísticas por dia/semana e verificação de
+    assinatura por e-mail.
+
+    - **Porta dev:** 3003
+    - **Auth:** NextAuth (sessão) ou e-mail (cliente sem login)
+servers:
+  - url: http://localhost:3003
+    description: Desenvolvimento
+  - url: https://nutricao.nutricao360.com
+    description: Produção
+tags:
+  - name: Meta
+    description: Spec OpenAPI exposta pelo app.
+  - name: Nutrition
+    description: Análise nutricional e histórico.
+  - name: Webhooks
+    description: Eventos da plataforma Guru.
+paths:
+  /api/swagger:
+    get:
+      tags: [Meta]
+      summary: OpenAPI spec do app nutrição
+      responses:
+        "200":
+          description: Spec OpenAPI 3.1 em JSON.
+
+  /api/nutrition/analyze:
+    post:
+      tags: [Nutrition]
+      summary: Analisa imagem de refeição (vision + analysis)
+      description: |
+        Recebe uma imagem (≤10 MB) e faz duas chamadas à IA:
+
+        1. **vision model** — descreve a refeição (alimentos e quantidades).
+        2. **analysis model** — calcula calorias, macros e devolve resumo
+           nutricional usando RAG.
+
+        Aceita autenticação por NextAuth (cookie) **ou** e-mail no form
+        (validado contra `UnifiedSubscriptionService`). Persiste o resultado em
+        `NutritionLog`.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Imagem JPG/PNG (até 10 MB).
+                mealType:
+                  type: string
+                  enum: [breakfast, lunch, snack, dinner, other]
+                email:
+                  type: string
+                  format: email
+                  description: Necessário se o cliente não estiver autenticado.
+      responses:
+        "200":
+          description: Análise concluída.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NutritionAnalysis" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/nutrition/analyze-text:
+    post:
+      tags: [Nutrition]
+      summary: Analisa lista textual de alimentos
+      description: |
+        Mesma lógica do `/analyze`, mas com lista textual em vez de imagem
+        (`foods: [{name, quantity}]`).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [foods]
+              properties:
+                foods:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      quantity: { type: string, example: "1 prato" }
+                mealType:
+                  type: string
+                  enum: [breakfast, lunch, snack, dinner, other]
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Análise concluída.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NutritionAnalysis" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/nutrition/stats:
+    get:
+      tags: [Nutrition]
+      summary: Estatísticas nutricionais do usuário logado
+      description: |
+        Agrega calorias/macros do dia, da semana e devolve as últimas refeições.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Stats agregadas.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NutritionStats" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/nutrition/verify-email:
+    get:
+      tags: [Nutrition]
+      summary: Verifica assinatura e lista logs paginados (e-mail)
+      description: |
+        Endpoint público para clientes sem login. Valida assinatura e retorna
+        10 logs por página.
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema: { type: string, format: email }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1, minimum: 1 }
+      responses:
+        "200":
+          description: Logs paginados.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasAccess: { type: boolean }
+                  logs:
+                    type: array
+                    items: { $ref: "#/components/schemas/NutritionLog" }
+                  page: { type: integer }
+                  totalPages: { type: integer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/webhook/guru:
+    get:
+      tags: [Webhooks]
+      summary: Healthcheck do webhook Guru
+      responses:
+        "200":
+          description: OK.
+    post:
+      tags: [Webhooks]
+      summary: Evento de assinatura Guru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuruWebhookPayload" }
+      responses:
+        "200": { $ref: "#/components/responses/WebhookOk" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+  responses:
+    BadRequest:
+      description: Parâmetros inválidos.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Sessão inválida ou api_token inválido.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Assinatura inativa.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ServerError:
+      description: Erro interno.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    WebhookOk:
+      description: Evento aceito (processado ou ignorado).
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+    NutritionAnalysis:
+      type: object
+      properties:
+        log:
+          $ref: "#/components/schemas/NutritionLog"
+        summary: { type: string }
+    NutritionLog:
+      type: object
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        mealType: { type: string }
+        foods:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              quantity: { type: string }
+              kcal: { type: number }
+              carbs: { type: number }
+              protein: { type: number }
+              fat: { type: number }
+        totals:
+          type: object
+          properties:
+            kcal: { type: number }
+            carbs: { type: number }
+            protein: { type: number }
+            fat: { type: number }
+        photoUrl: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    NutritionStats:
+      type: object
+      properties:
+        today:
+          type: object
+          properties:
+            kcal: { type: number }
+            carbs: { type: number }
+            protein: { type: number }
+            fat: { type: number }
+        weekly:
+          type: array
+          items:
+            type: object
+            properties:
+              date: { type: string, format: date }
+              kcal: { type: number }
+        recent:
+          type: array
+          items: { $ref: "#/components/schemas/NutritionLog" }
+    GuruWebhookPayload:
+      type: object
+      required: [api_token]
+      properties:
+        api_token: { type: string }
+        id: { type: string }
+        event: { type: string }
+        status: { type: string }
+        contact:
+          type: object
+          properties:
+            email: { type: string, format: email }
+        product:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }

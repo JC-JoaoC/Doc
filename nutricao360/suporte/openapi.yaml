@@ -1,0 +1,244 @@
+openapi: 3.1.0
+info:
+  title: suporte API
+  version: 1.0.0
+  description: |
+    **suporte** — Chat IA de suporte ao cliente da Nutricao360.
+
+    Sessões persistentes (`ChatSession` + `ChatMessage`) com RAG sobre itens da
+    `KnowledgeBase` do tipo `support_reference`. Cada mensagem é enviada à LLM
+    via OpenRouter junto do contexto recuperado. Acesso é validado por e-mail
+    contra `UnifiedSubscriptionService` — não há login NextAuth.
+
+    - **Porta dev:** 3005 (colide com `admin`; ajustar em deploys paralelos)
+    - **Auth pública:** verificação de assinatura por e-mail
+    - **Marcador de sessão:** títulos começam com `[SUPORTE]`
+servers:
+  - url: http://localhost:3005
+    description: Desenvolvimento
+  - url: https://suporte.nutricao360.com
+    description: Produção
+tags:
+  - name: Meta
+    description: Spec OpenAPI exposta pelo app.
+  - name: Auth
+    description: Verificação de e-mail/assinatura.
+  - name: Chat
+    description: Sessões e mensagens do assistente de suporte.
+  - name: Webhooks
+    description: Eventos da plataforma Guru.
+paths:
+  /api/swagger:
+    get:
+      tags: [Meta]
+      summary: OpenAPI spec do app suporte
+      responses:
+        "200":
+          description: Spec OpenAPI 3.1 em JSON.
+
+  /api/auth/verify-email:
+    get:
+      tags: [Auth]
+      summary: Valida assinatura e lista sessões recentes
+      description: |
+        Valida a assinatura do e-mail. Em caso de sucesso devolve o usuário e até
+        20 sessões com prefixo `[SUPORTE]` ordenadas por `updatedAt desc`.
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema: { type: string, format: email }
+      responses:
+        "200":
+          description: Acesso liberado e sessões do usuário.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasAccess: { type: boolean }
+                  user: { $ref: "#/components/schemas/User" }
+                  sessions:
+                    type: array
+                    items: { $ref: "#/components/schemas/ChatSession" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/chat:
+    post:
+      tags: [Chat]
+      summary: Envia mensagem ao assistente de suporte
+      description: |
+        Cria a sessão se `sessionId` não for enviado. Recupera contexto via RAG
+        em `support_reference` e chama a LLM. Persiste mensagem do usuário e
+        resposta do assistente em `ChatMessage`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, message]
+              properties:
+                email: { type: string, format: email }
+                message: { type: string, minLength: 1 }
+                sessionId: { type: string, nullable: true }
+      responses:
+        "200":
+          description: Mensagem processada e resposta da IA persistida.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId: { type: string }
+                  message: { $ref: "#/components/schemas/ChatMessage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/chat/{sessionId}:
+    get:
+      tags: [Chat]
+      summary: Carrega sessão e histórico
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: email
+          required: true
+          schema: { type: string, format: email }
+      responses:
+        "200":
+          description: Sessão e mensagens.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session: { $ref: "#/components/schemas/ChatSession" }
+                  messages:
+                    type: array
+                    items: { $ref: "#/components/schemas/ChatMessage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/webhook/guru:
+    get:
+      tags: [Webhooks]
+      summary: Healthcheck do webhook Guru
+      description: "Retorna mapa `GURU_PRODUCT_PERIODS` e flag `ok: true`."
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  productPeriods:
+                    type: object
+                    additionalProperties: { type: integer }
+    post:
+      tags: [Webhooks]
+      summary: Evento de assinatura Guru
+      description: |
+        Valida `api_token`, persiste o evento e faz upsert em `GuruSubscription`.
+        Eventos de produtos desconhecidos são logados e ignorados.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuruWebhookPayload" }
+      responses:
+        "200": { $ref: "#/components/responses/WebhookOk" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+components:
+  responses:
+    BadRequest:
+      description: Parâmetros inválidos.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: api_token inválido.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Assinatura inativa.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Recurso inexistente.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ServerError:
+      description: Erro interno.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    WebhookOk:
+      description: Evento aceito (processado ou ignorado).
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean, example: true }
+              message: { type: string }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string, nullable: true }
+        email: { type: string, format: email }
+    ChatSession:
+      type: object
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        title: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ChatMessage:
+      type: object
+      properties:
+        id: { type: string }
+        sessionId: { type: string }
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+    GuruWebhookPayload:
+      type: object
+      required: [api_token]
+      properties:
+        api_token: { type: string }
+        id: { type: string }
+        event: { type: string }
+        status: { type: string }
+        contact:
+          type: object
+          properties:
+            email: { type: string, format: email }
+            name: { type: string }
+        product:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }

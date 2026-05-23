@@ -1,0 +1,385 @@
+openapi: 3.1.0
+info:
+  title: glicocheck API
+  version: 1.0.0
+  description: |
+    **glicocheck** — Análise glicêmica.
+
+    Armazena valores de marcadores metabólicos relacionados ao controle de
+    glicose e resistência à insulina: glicemia de jejum, insulina, HbA1c,
+    frutosamina, peptídeo C, ácido úrico, HOMA-IR, HOMA-Beta, relação
+    glicose/insulina. Suporta detecção de padrões como hiperinsulinemia
+    compensada e disfunção pancreática.
+
+    - **Porta dev:** 3003
+    - **Domínio:** https://glicocheck.nutricao360.com/
+    - **Tabela do app:** `glico_analyses`
+    - **Auth:** cookie `__session_glico` (JWT HS256, 1 ano)
+servers:
+  - url: http://localhost:3003
+    description: Desenvolvimento
+  - url: https://glicocheck.nutricao360.com
+    description: Produção
+tags:
+  - name: Auth (REST)
+  - name: Webhooks
+  - name: tRPC - system
+  - name: tRPC - auth
+  - name: tRPC - analysis
+    description: Persistência e histórico de análises glicêmicas.
+paths:
+  /api/oauth/callback:
+    get:
+      tags: [Auth (REST)]
+      summary: Callback OAuth
+      parameters:
+        - { in: query, name: code, required: true, schema: { type: string } }
+        - { in: query, name: state, required: true, schema: { type: string } }
+      responses:
+        "302": { description: Redireciona para `/` com cookie de sessão. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/ServerError" }
+  /api/webhook/guru:
+    get:
+      tags: [Webhooks]
+      summary: Healthcheck do webhook
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string, example: guru-webhook }
+    post:
+      tags: [Webhooks]
+      summary: Evento de assinatura Guru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GuruWebhookPayload" }
+      responses:
+        "200": { $ref: "#/components/responses/WebhookOk" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/trpc/system.health:
+    get:
+      tags: [tRPC - system]
+      summary: system.health (query, public)
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200": { $ref: "#/components/responses/TrpcOk" }
+  /api/trpc/system.notifyOwner:
+    post:
+      tags: [tRPC - system]
+      summary: system.notifyOwner (mutation, admin)
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                content: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/TrpcOk" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/trpc/auth.me:
+    get:
+      tags: [tRPC - auth]
+      summary: auth.me (query, public)
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            oneOf:
+                              - $ref: "#/components/schemas/User"
+                              - type: "null"
+  /api/trpc/auth.logout:
+    post:
+      tags: [tRPC - auth]
+      summary: auth.logout (mutation, public)
+      responses:
+        "200": { $ref: "#/components/responses/SuccessTrue" }
+  /api/trpc/auth.emailAccess:
+    post:
+      tags: [tRPC - auth]
+      summary: auth.emailAccess (mutation, public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties: { email: { type: string, format: email } }
+      responses:
+        "200": { $ref: "#/components/responses/EmailAccessOk" }
+  /api/trpc/auth.checkAccess:
+    get:
+      tags: [tRPC - auth]
+      summary: auth.checkAccess (query, public)
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200": { $ref: "#/components/responses/TrpcOk" }
+
+  /api/trpc/analysis.create:
+    post:
+      tags: [tRPC - analysis]
+      summary: analysis.create (mutation, protected)
+      description: Persiste uma nova análise glicêmica em `glico_analyses`.
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [analysisDate]
+              properties:
+                analysisDate: { type: integer, description: "Timestamp em ms." }
+                glicemiaJejum: { type: number, nullable: true }
+                insulina: { type: number, nullable: true }
+                hba1c: { type: number, nullable: true }
+                frutosamina: { type: number, nullable: true }
+                peptideoC: { type: number, nullable: true }
+                acidoUrico: { type: number, nullable: true }
+                homaIr: { type: number, nullable: true }
+                homaBeta: { type: number, nullable: true }
+                relacaoGlicoseInsulina: { type: number, nullable: true }
+                correlations: { type: string, nullable: true }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: object
+                            required: [id]
+                            properties:
+                              id: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/trpc/analysis.list:
+    get:
+      tags: [tRPC - analysis]
+      summary: analysis.list (query, protected)
+      description: Lista as análises do usuário logado em ordem decrescente de data.
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: "#/components/schemas/Analysis" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/trpc/analysis.get:
+    get:
+      tags: [tRPC - analysis]
+      summary: analysis.get (query, protected)
+      description: Retorna uma análise pelo `id` (apenas se pertencer ao usuário) ou `null`.
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: "#/components/parameters/TrpcInput" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TrpcResult"
+                  - properties:
+                      result:
+                        properties:
+                          data:
+                            oneOf:
+                              - $ref: "#/components/schemas/Analysis"
+                              - type: "null"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/trpc/analysis.delete:
+    post:
+      tags: [tRPC - analysis]
+      summary: analysis.delete (mutation, protected)
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [id], properties: { id: { type: integer } } }
+      responses:
+        "200": { $ref: "#/components/responses/SuccessBool" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    sessionCookie: { type: apiKey, in: cookie, name: __session_glico }
+  parameters:
+    TrpcInput:
+      in: query
+      name: input
+      schema: { type: string }
+      description: Input do procedure serializado como JSON URL-encoded (tRPC v10).
+  responses:
+    BadRequest:
+      description: Parâmetros inválidos.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Unauthorized:
+      description: Não autenticado.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Forbidden:
+      description: Requer role de admin.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    ServerError:
+      description: Erro interno.
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    TrpcOk:
+      description: OK
+      content: { application/json: { schema: { $ref: "#/components/schemas/TrpcResult" } } }
+    WebhookOk:
+      description: Evento aceito.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean }
+              message: { type: string }
+    EmailAccessOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/TrpcResult"
+              - properties:
+                  result:
+                    properties:
+                      data:
+                        oneOf:
+                          - type: object
+                            properties:
+                              success: { const: true }
+                              user: { $ref: "#/components/schemas/User" }
+                          - type: object
+                            properties:
+                              success: { const: false }
+                              error: { type: string }
+    SuccessTrue:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/TrpcResult"
+              - properties:
+                  result:
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success: { type: boolean, example: true }
+    SuccessBool:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/TrpcResult"
+              - properties:
+                  result:
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success: { type: boolean }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties: { error: { type: string } }
+    User:
+      type: object
+      required: [id, openId, role, createdAt, updatedAt, lastSignedIn]
+      properties:
+        id: { type: integer }
+        openId: { type: string }
+        name: { type: string, nullable: true }
+        email: { type: string, format: email, nullable: true }
+        loginMethod: { type: string, nullable: true }
+        role: { type: string, enum: [user, admin] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        lastSignedIn: { type: string, format: date-time }
+    TrpcResult:
+      type: object
+      properties:
+        result:
+          type: object
+          properties: { data: {} }
+    GuruWebhookPayload:
+      type: object
+      required: [api_token]
+      properties:
+        api_token: { type: string }
+        id: { type: string }
+        event: { type: string }
+        status: { type: string }
+        contact:
+          type: object
+          properties:
+            email: { type: string, format: email }
+            name: { type: string }
+        product:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+    Analysis:
+      type: object
+      required: [id, userId, analysisDate, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        analysisDate: { type: string, format: date-time }
+        glicemiaJejum: { type: number, nullable: true }
+        insulina: { type: number, nullable: true }
+        hba1c: { type: number, nullable: true }
+        frutosamina: { type: number, nullable: true }
+        peptideoC: { type: number, nullable: true }
+        acidoUrico: { type: number, nullable: true }
+        homaIr: { type: number, nullable: true }
+        homaBeta: { type: number, nullable: true }
+        relacaoGlicoseInsulina: { type: number, nullable: true }
+        correlations: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }

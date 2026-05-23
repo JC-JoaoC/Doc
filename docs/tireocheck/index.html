@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>tireocheck API</title>
+  <link rel="preconnect" href="https://rsms.me/" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <link rel="stylesheet" href="../../assets/cofounder.css" />
+</head>
+
+<body>
+
+<header class="cf-topbar">
+  <button class="cf-icon cf-menu-toggle" id="cfMenuToggle" aria-label="Abrir menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <a class="cf-brand" href="../../index.html">
+    <span class="cf-logo">⚕</span>
+    <span>HealthCheck Docs</span>
+  </a>
+  <nav class="cf-nav">
+    <a href="../../index.html">Overview</a>
+    <a href="../index.html" class="is-active">HealthCheck</a>
+    <a href="../../nutricao360/index.html">Nutricao360</a>
+    <a href="../../docs-csat/docs.html">CSAT</a>
+  </nav>
+  <div class="cf-spacer"></div>
+  <input id="cfSearch" class="cf-search" type="search" placeholder="Buscar app…" />
+  <button class="cf-icon" id="cfThemeToggle" aria-label="Alternar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>
+</header>
+
+<div class="cf-backdrop"></div>
+
+<div class="cf-layout">
+<aside class="cf-sidebar">
+    <div class="cf-group">Geral</div>
+    <a class="cf-nav-item" href="../index.html">Visão geral<span class="cf-tag">hub</span></a>
+    <a class="cf-nav-item" href="../API.md">API.md<span class="cf-tag">md</span></a>
+    <a class="cf-nav-item" href="../global.html">Spec global<span class="cf-tag">redoc</span></a>
+
+    <div class="cf-group">Análise clínica</div>
+    <a class="cf-nav-item" href="../cardiocheck/">cardiocheck<span class="cf-tag">3002</span></a>
+    <a class="cf-nav-item" href="../glicocheck/">glicocheck<span class="cf-tag">3003</span></a>
+    <a class="cf-nav-item" href="../hemocheck/">hemocheck<span class="cf-tag">3009</span></a>
+    <a class="cf-nav-item" href="../nutricheck/">nutricheck<span class="cf-tag">3004</span></a>
+    <a class="cf-nav-item" href="../osteocheck/">osteocheck<span class="cf-tag">3005</span></a>
+    <a class="cf-nav-item" href="../renalcheck/">renalcheck<span class="cf-tag">3006</span></a>
+    <a class="cf-nav-item" href="../sexcheck/">sexcheck<span class="cf-tag">3007</span></a>
+    <a class="cf-nav-item" href="../tireocheck/">tireocheck<span class="cf-tag">3008</span></a>
+
+    <div class="cf-group">Hábito e planejamento</div>
+    <a class="cf-nav-item" href="../aquaflow/">aquaflow<span class="cf-tag">3001</span></a>
+    <a class="cf-nav-item" href="../listaCompras/">listaCompras<span class="cf-tag">—</span></a>
+  </aside>
+
+  <main class="cf-main">
+    <section class="cf-ribbon">
+      <h2 class="cf-ribbon-title" id="ribbonTitle">API</h2>
+      <div class="cf-meta" id="ribbonMeta"></div>
+    </section>
+    <section class="cf-swagger">
+      <div id="swagger-ui"></div>
+    </section>
+  </main>
+</div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script id="openapi-spec"
+    type="application/json">{"openapi":"3.1.0","info":{"title":"tireocheck API","version":"1.0.0","description":"**tireocheck** — Análise da função tireoidiana.\n\nProcessa 7 marcadores (TSH, T4 Livre, T3 Livre, T3 Reverso, Anti-TPO,\nAnti-Tireoglobulina, Tireoglobulina), calcula a razão T3L/T3R e detecta\n8 padrões clínicos (hipotireoidismo franco/subclínico, hipertireoidismo,\nHashimoto, síndrome do T3 baixo etc.).\n\n- **Porta dev:** 3008\n- **Domínio:** https://tireocheck.nutricao360.com/\n- **Tabela do app:** `analyses`\n- **Auth:** cookie `__session_tireo` (JWT HS256, 1 ano)\n"},"servers":[{"url":"http://localhost:3008","description":"Desenvolvimento"},{"url":"https://tireocheck.nutricao360.com","description":"Produção"}],"tags":[{"name":"Auth (REST)"},{"name":"Webhooks"},{"name":"tRPC - system"},{"name":"tRPC - auth"},{"name":"tRPC - analysis","description":"Preview, persistência e histórico de análises da função tireoidiana."}],"paths":{"/api/oauth/callback":{"get":{"tags":["Auth (REST)"],"summary":"Callback OAuth","parameters":[{"in":"query","name":"code","required":true,"schema":{"type":"string"}},{"in":"query","name":"state","required":true,"schema":{"type":"string"}}],"responses":{"302":{"description":"Redireciona para `/` com cookie de sessão."},"400":{"$ref":"#/components/responses/BadRequest"},"500":{"$ref":"#/components/responses/ServerError"}}}},"/api/webhook/guru":{"get":{"tags":["Webhooks"],"summary":"Healthcheck do webhook","responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"status":{"type":"string","example":"ok"},"service":{"type":"string","example":"guru-webhook"}}}}}}}},"post":{"tags":["Webhooks"],"summary":"Evento de assinatura Guru","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/GuruWebhookPayload"}}}},"responses":{"200":{"$ref":"#/components/responses/WebhookOk"},"401":{"$ref":"#/components/responses/Unauthorized"},"500":{"$ref":"#/components/responses/ServerError"}}}},"/api/trpc/system.health":{"get":{"tags":["tRPC - system"],"summary":"system.health (query, public)","parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"$ref":"#/components/responses/TrpcOk"}}}},"/api/trpc/system.notifyOwner":{"post":{"tags":["tRPC - system"],"summary":"system.notifyOwner (mutation, admin)","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"title":{"type":"string"},"content":{"type":"string"}}}}}},"responses":{"200":{"$ref":"#/components/responses/TrpcOk"},"401":{"$ref":"#/components/responses/Unauthorized"},"403":{"$ref":"#/components/responses/Forbidden"}}}},"/api/trpc/auth.me":{"get":{"tags":["tRPC - auth"],"summary":"auth.me (query, public)","parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"oneOf":[{"$ref":"#/components/schemas/User"},{"type":"null"}]}}}}}]}}}}}}},"/api/trpc/auth.logout":{"post":{"tags":["tRPC - auth"],"summary":"auth.logout (mutation, public)","responses":{"200":{"$ref":"#/components/responses/SuccessTrue"}}}},"/api/trpc/auth.emailAccess":{"post":{"tags":["tRPC - auth"],"summary":"auth.emailAccess (mutation, public)","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["email"],"properties":{"email":{"type":"string","format":"email"}}}}}},"responses":{"200":{"$ref":"#/components/responses/EmailAccessOk"}}}},"/api/trpc/auth.checkAccess":{"get":{"tags":["tRPC - auth"],"summary":"auth.checkAccess (query, public)","parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"$ref":"#/components/responses/TrpcOk"}}}},"/api/trpc/analysis.preview":{"post":{"tags":["tRPC - analysis"],"summary":"analysis.preview (mutation, public)","description":"Processa exames e retorna `examResults`, `ratios`, `correlations` e\n`summary` **sem persistir**. Disponível publicamente para demonstração.\n","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["examValues"],"properties":{"examValues":{"$ref":"#/components/schemas/ExamMap"},"patientAge":{"type":"integer","nullable":true},"patientSex":{"type":"string","nullable":true,"enum":["male","female"]},"patientMenopause":{"type":"boolean","nullable":true}}}}}},"responses":{"200":{"$ref":"#/components/responses/AnalysisResultOk"}}}},"/api/trpc/analysis.save":{"post":{"tags":["tRPC - analysis"],"summary":"analysis.save (mutation, protected)","description":"Processa, persiste em `analyses` e retorna análise com `id`.","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["examDate","examValues"],"properties":{"examDate":{"type":"string","format":"date","description":"YYYY-MM-DD"},"examValues":{"$ref":"#/components/schemas/ExamMap"},"patientAge":{"type":"integer","nullable":true},"patientSex":{"type":"string","nullable":true,"enum":["male","female"]},"patientMenopause":{"type":"boolean","nullable":true}}}}}},"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"object","properties":{"id":{"type":"integer"},"results":{"$ref":"#/components/schemas/AnalysisResult"}}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/analysis.list":{"get":{"tags":["tRPC - analysis"],"summary":"analysis.list (query, protected)","description":"Lista até 50 análises do usuário, ordenadas por `createdAt DESC`.","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"array","items":{"$ref":"#/components/schemas/Analysis"}}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/analysis.get":{"get":{"tags":["tRPC - analysis"],"summary":"analysis.get (query, protected)","security":[{"sessionCookie":[]}],"parameters":[{"$ref":"#/components/parameters/TrpcInput"}],"responses":{"200":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"oneOf":[{"$ref":"#/components/schemas/Analysis"},{"type":"null"}]}}}}}]}}}},"401":{"$ref":"#/components/responses/Unauthorized"}}}},"/api/trpc/analysis.delete":{"post":{"tags":["tRPC - analysis"],"summary":"analysis.delete (mutation, protected)","security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["id"],"properties":{"id":{"type":"integer"}}}}}},"responses":{"200":{"$ref":"#/components/responses/SuccessTrue"},"401":{"$ref":"#/components/responses/Unauthorized"}}}}},"components":{"securitySchemes":{"sessionCookie":{"type":"apiKey","in":"cookie","name":"__session_tireo"}},"parameters":{"TrpcInput":{"in":"query","name":"input","schema":{"type":"string"},"description":"Input do procedure serializado como JSON URL-encoded (tRPC v10)."}},"responses":{"BadRequest":{"description":"Parâmetros inválidos.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"Unauthorized":{"description":"Não autenticado.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"Forbidden":{"description":"Requer role de admin.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"ServerError":{"description":"Erro interno.","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}},"TrpcOk":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/TrpcResult"}}}},"WebhookOk":{"description":"Evento aceito.","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}}}}}},"EmailAccessOk":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"oneOf":[{"type":"object","properties":{"success":{"const":true},"user":{"$ref":"#/components/schemas/User"}}},{"type":"object","properties":{"success":{"const":false},"error":{"type":"string"}}}]}}}}}]}}}},"SuccessTrue":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"type":"object","properties":{"success":{"type":"boolean","example":true}}}}}}}]}}}},"AnalysisResultOk":{"description":"OK","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/TrpcResult"},{"properties":{"result":{"properties":{"data":{"$ref":"#/components/schemas/AnalysisResult"}}}}}]}}}}},"schemas":{"Error":{"type":"object","required":["error"],"properties":{"error":{"type":"string"}}},"User":{"type":"object","required":["id","openId","role","createdAt","updatedAt","lastSignedIn"],"properties":{"id":{"type":"integer"},"openId":{"type":"string"},"name":{"type":"string","nullable":true},"email":{"type":"string","format":"email","nullable":true},"loginMethod":{"type":"string","nullable":true},"role":{"type":"string","enum":["user","admin"]},"createdAt":{"type":"string","format":"date-time"},"updatedAt":{"type":"string","format":"date-time"},"lastSignedIn":{"type":"string","format":"date-time"}}},"TrpcResult":{"type":"object","properties":{"result":{"type":"object","properties":{"data":{}}}}},"GuruWebhookPayload":{"type":"object","required":["api_token"],"properties":{"api_token":{"type":"string"},"id":{"type":"string"},"event":{"type":"string"},"status":{"type":"string"},"contact":{"type":"object","properties":{"email":{"type":"string","format":"email"},"name":{"type":"string"}}},"product":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"}}}}},"TrafficLight":{"type":"string","enum":["optimal","attention","alert"]},"ExamValue":{"type":"object","required":["value","unit"],"properties":{"value":{"type":"number"},"unit":{"type":"string","example":"mUI/L"}}},"ExamMap":{"type":"object","description":"Mapa `{ examId → { value, unit } }`.","additionalProperties":{"$ref":"#/components/schemas/ExamValue"}},"ExamResult":{"type":"object","required":["id","name","value","unit","status","optimalMin","optimalMax","attentionMin","attentionMax"],"properties":{"id":{"type":"string"},"name":{"type":"string"},"value":{"type":"number"},"unit":{"type":"string"},"status":{"$ref":"#/components/schemas/TrafficLight"},"optimalMin":{"type":"number"},"optimalMax":{"type":"number"},"attentionMin":{"type":"number"},"attentionMax":{"type":"number"}}},"RatioResult":{"type":"object","required":["id","name","value","unit","status","description","formula","optimalMin","optimalMax"],"properties":{"id":{"type":"string"},"name":{"type":"string"},"value":{"type":"number"},"unit":{"type":"string"},"status":{"$ref":"#/components/schemas/TrafficLight"},"description":{"type":"string"},"formula":{"type":"string"},"optimalMin":{"type":"number"},"optimalMax":{"type":"number"}}},"Correlation":{"type":"object","required":["id","title","description","severity","relatedExams"],"properties":{"id":{"type":"string"},"title":{"type":"string"},"description":{"type":"string"},"severity":{"type":"string","enum":["attention","alert"]},"relatedExams":{"type":"array","items":{"type":"string"}}}},"AnalysisResult":{"type":"object","required":["examResults","ratios","correlations","summary"],"properties":{"examResults":{"type":"array","items":{"$ref":"#/components/schemas/ExamResult"}},"ratios":{"type":"array","items":{"$ref":"#/components/schemas/RatioResult"}},"correlations":{"type":"array","items":{"$ref":"#/components/schemas/Correlation"}},"summary":{"type":"array","items":{"type":"string"}}}},"Analysis":{"type":"object","required":["id","userId","examDate","examValues","results","createdAt"],"properties":{"id":{"type":"integer"},"userId":{"type":"integer"},"examDate":{"type":"string","format":"date","description":"YYYY-MM-DD"},"patientAge":{"type":"integer","nullable":true},"patientSex":{"type":"string","nullable":true,"enum":["male","female"]},"patientMenopause":{"type":"integer","nullable":true,"description":"0 ou 1"},"examValues":{"$ref":"#/components/schemas/ExamMap"},"results":{"$ref":"#/components/schemas/AnalysisResult"},"createdAt":{"type":"string","format":"date-time"}}}}}}</script>
+  <script>
+    const spec = JSON.parse(document.getElementById('openapi-spec').textContent);
+    // popula o ribbon com título/servers/versão a partir do spec
+    (function () {
+      try {
+        var info = spec && spec.info ? spec.info : {};
+        var t = document.getElementById('ribbonTitle');
+        if (t) t.textContent = info.title || 'API';
+        var meta = document.getElementById('ribbonMeta');
+        if (meta) {
+          (spec.servers || []).slice(0, 2).forEach(function (s) {
+            var e = document.createElement('span'); e.className = 'cf-mono';
+            e.textContent = s.url; meta.appendChild(e);
+          });
+          var v = document.createElement('span'); v.className = 'cf-mono';
+          v.textContent = 'OpenAPI ' + (spec.openapi || '3.0'); meta.appendChild(v);
+        }
+        if (info.title) document.title = info.title + ' · Docs';
+      } catch (e) {}
+    })();
+
+    
+
+    window.ui = SwaggerUIBundle({
+      spec: spec,
+      dom_id: '#swagger-ui',
+      deepLinking: true,
+      presets: [SwaggerUIBundle.presets.apis],
+      docExpansion: 'list',
+      defaultModelsExpandDepth: 1,
+      tryItOutEnabled: false,
+    });
+  </script>
+  <script src="../../assets/cofounder.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,478 @@
+openapi: 3.0.3
+info:
+  title: CSAT Plano Alimentar API
+  version: 1.0.0
+  description: |-
+    API de coleta e administraÃ§Ã£o de respostas de pesquisa de satisfaÃ§Ã£o (CSAT)
+    sobre planos alimentares.
+
+    Fluxos principais:
+    - **PÃºblico:** envio de respostas via `POST /api/responses` (sem autenticaÃ§Ã£o).
+    - **Administrativo:** login via `POST /api/auth/login` retorna um JWT que deve
+      ser enviado no header `Authorization: Bearer <token>` para os endpoints
+      protegidos (`GET /api/responses`, `DELETE /api/responses/{id}`).
+
+    ApÃ³s o registro de uma resposta, o backend dispara em background o
+    enriquecimento via API externa NutriÃ§Ã£o 360 para vincular o nutricionista
+    aprovador e os planos alimentares do e-mail informado.
+  contact:
+    name: Equipe CSAT
+  license:
+    name: ProprietÃ¡rio
+servers:
+  - url: http://localhost:3001
+    description: Desenvolvimento local
+  - url: /
+    description: Mesma origem (atrÃ¡s de reverse proxy / nginx)
+tags:
+  - name: Health
+    description: VerificaÃ§Ã£o de disponibilidade do serviÃ§o.
+  - name: Auth
+    description: AutenticaÃ§Ã£o administrativa via JWT.
+  - name: Responses
+    description: Coleta de respostas (pÃºblico) e gestÃ£o (admin).
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtido em `POST /api/auth/login`.
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Mensagem de erro legÃ­vel.
+          example: invalid credentials
+    HealthResponse:
+      type: object
+      required:
+        - ok
+      properties:
+        ok:
+          type: boolean
+          example: true
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: E-mail do administrador (case-insensitive).
+          example: admin@example.com
+        password:
+          type: string
+          format: password
+          description: Senha em texto puro; o backend valida contra um hash bcrypt.
+          example: minha-senha-secreta
+    LoginResponse:
+      type: object
+      required:
+        - token
+        - email
+      properties:
+        token:
+          type: string
+          description: JWT assinado. Validade padrÃ£o de 24h.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        email:
+          type: string
+          format: email
+          example: admin@example.com
+    Ratings:
+      type: object
+      description: AvaliaÃ§Ãµes de 1 a 5 para cada dimensÃ£o do plano alimentar.
+      required:
+        - satisfaction
+        - clarity
+        - routine
+        - variety
+        - preferences
+      properties:
+        satisfaction:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: SatisfaÃ§Ã£o geral com o plano.
+          example: 5
+        clarity:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Clareza das orientaÃ§Ãµes do plano.
+          example: 4
+        routine:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: "AdequaÃ§Ã£o Ã\_ rotina do paciente."
+          example: 4
+        variety:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Variedade de alimentos.
+          example: 5
+        preferences:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: "AderÃªncia Ã\_s preferÃªncias alimentares."
+          example: 5
+    CreateResponseRequest:
+      type: object
+      required:
+        - email
+        - ratings
+        - recommend
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Nome do respondente (opcional).
+          example: Maria Silva
+        email:
+          type: string
+          format: email
+          description: E-mail do paciente. Usado como chave para enriquecimento.
+          example: maria@example.com
+        contact:
+          type: string
+          nullable: true
+          description: Telefone ou outro contato (opcional).
+          example: +55 11 99999-0000
+        ratings:
+          $ref: '#/components/schemas/Ratings'
+        liked:
+          type: string
+          nullable: true
+          description: O que o paciente mais gostou (texto livre).
+          example: Variedade nas refeiÃ§Ãµes e receitas prÃ¡ticas.
+        improve:
+          type: string
+          nullable: true
+          description: O que poderia melhorar (texto livre).
+          example: Mais opÃ§Ãµes de lanches.
+        recommend:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: Nota NPS â€” probabilidade de recomendar (1 a 10).
+          example: 9
+    CreateResponseResult:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador da resposta criada.
+          example: c5b1f6e2-3d1f-4e9f-9f9e-3a8a6c3b2a1d
+    EnrichmentStatus:
+      type: string
+      enum:
+        - PENDING
+        - DONE
+        - NOT_FOUND
+        - FAILED
+      description: |-
+        Status do enriquecimento via NutriÃ§Ã£o 360:
+        - `PENDING`: ainda nÃ£o processado.
+        - `DONE`: enriquecido com sucesso.
+        - `NOT_FOUND`: e-mail nÃ£o localizado na base externa.
+        - `FAILED`: falha de integraÃ§Ã£o (timeout, erro 5xx, etc).
+    ApprovedBy:
+      type: object
+      nullable: true
+      description: Dados do nutricionista que aprovou o plano (espelho da API externa).
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          example: nutri-123
+        name:
+          type: string
+          example: Dra. Ana Souza
+        email:
+          type: string
+          format: email
+          example: ana@nutricao360.com
+    MealPlan:
+      type: object
+      description: Plano alimentar retornado pela API NutriÃ§Ã£o 360. Formato aberto.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          example: plan-789
+        createdAt:
+          type: string
+          format: date-time
+        approvedBy:
+          $ref: '#/components/schemas/ApprovedBy'
+    Response:
+      type: object
+      description: Resposta CSAT persistida no banco.
+      required:
+        - id
+        - email
+        - ratings
+        - recommend
+        - createdAt
+        - enrichmentStatus
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: c5b1f6e2-3d1f-4e9f-9f9e-3a8a6c3b2a1d
+        name:
+          type: string
+          nullable: true
+          example: Maria Silva
+        email:
+          type: string
+          format: email
+          example: maria@example.com
+        contact:
+          type: string
+          nullable: true
+          example: +55 11 99999-0000
+        ratings:
+          $ref: '#/components/schemas/Ratings'
+        liked:
+          type: string
+          nullable: true
+        improve:
+          type: string
+          nullable: true
+        recommend:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 9
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-05-14T13:45:21.000Z'
+        enrichmentStatus:
+          $ref: '#/components/schemas/EnrichmentStatus'
+        enrichedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-05-14T13:45:23.142Z'
+        approvedBy:
+          $ref: '#/components/schemas/ApprovedBy'
+        mealPlans:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/MealPlan'
+  responses:
+    Unauthorized:
+      description: Token ausente, invÃ¡lido ou expirado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            missing:
+              value:
+                error: missing token
+            invalid:
+              value:
+                error: invalid or expired token
+    BadRequest:
+      description: Payload invÃ¡lido.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            emailRequired:
+              value:
+                error: email required
+            ratingsRequired:
+              value:
+                error: ratings required
+            ratingInvalid:
+              value:
+                error: rating satisfaction invalid
+            recommendInvalid:
+              value:
+                error: recommend invalid
+    NotFound:
+      description: Recurso nÃ£o encontrado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: not found
+    InternalError:
+      description: Erro interno do servidor.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: internal error
+paths:
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Verifica disponibilidade do serviÃ§o
+      description: 'Healthcheck simples â€” retorna `{ ok: true }` quando a API estÃ¡ em execuÃ§Ã£o.'
+      responses:
+        '200':
+          description: API operacional.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login administrativo
+      description: >-
+        Autentica o administrador configurado em `ADMIN_EMAIL` / `ADMIN_PASSWORD_HASH` e retorna um JWT assinado com
+        `JWT_SECRET`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Credenciais vÃ¡lidas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: E-mail ou senha nÃ£o enviados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: email and password required
+        '401':
+          description: Credenciais invÃ¡lidas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: invalid credentials
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/responses:
+    post:
+      tags:
+        - Responses
+      summary: Registra uma nova resposta CSAT
+      description: |-
+        Endpoint **pÃºblico** usado pelo formulÃ¡rio web. Persiste a resposta e dispara
+        em background a tentativa de enriquecimento via NutriÃ§Ã£o 360 (vinculaÃ§Ã£o
+        do nutricionista aprovador e dos planos alimentares do e-mail informado).
+
+        A resposta Ã© persistida com `enrichmentStatus = PENDING`. O job assÃ­ncrono
+        atualiza para `DONE`, `NOT_FOUND` ou `FAILED` conforme o resultado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateResponseRequest'
+            example:
+              name: Maria Silva
+              email: maria@example.com
+              contact: +55 11 99999-0000
+              ratings:
+                satisfaction: 5
+                clarity: 4
+                routine: 4
+                variety: 5
+                preferences: 5
+              liked: Variedade nas refeiÃ§Ãµes.
+              improve: Mais opÃ§Ãµes de lanches.
+              recommend: 9
+      responses:
+        '201':
+          description: Resposta registrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateResponseResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags:
+        - Responses
+      summary: Lista as respostas (admin)
+      description: >-
+        Retorna atÃ© 500 respostas mais recentes, ordenadas por `createdAt` desc. Inclui dados de enriquecimento quando
+        disponÃ­veis.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de respostas.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Response'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/responses/{id}:
+    delete:
+      tags:
+        - Responses
+      summary: Remove uma resposta (admin)
+      description: Exclui permanentemente uma resposta pelo seu identificador.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID da resposta.
+          schema:
+            type: string
+            format: uuid
+          example: c5b1f6e2-3d1f-4e9f-9f9e-3a8a6c3b2a1d
+      responses:
+        '204':
+          description: Resposta removida com sucesso (sem corpo).
+        '400':
+          description: ID invÃ¡lido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: invalid id
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'

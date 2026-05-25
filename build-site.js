@@ -1,6 +1,5 @@
-// Build script descartável: lê todas as specs OpenAPI já embutidas nos
-// docs/<app>/index.html e em docs-csat/docs.html, lê docs/API.md e
-// gera um único site self-contained em ./index.html.
+// Lê as specs OpenAPI (YAML) dos apps catalogados abaixo + dois arquivos
+// markdown de visão geral, e gera um único site self-contained em ./index.html.
 //
 // Uso: node build-site.js
 
@@ -10,109 +9,56 @@ const yaml = require('js-yaml');
 const { renderSpecContent } = require('./render-spec');
 
 const ROOT = __dirname;
-const DOCS = path.join(ROOT, 'docs');
-const CSAT = path.join(ROOT, 'docs-csat');
-const N360 = path.join(ROOT, 'nutricao360');
-const NPS  = path.join(ROOT, 'NPS');
-const ACOMP = path.join(ROOT, 'acompanhamento');
 const OUT = path.join(ROOT, 'index.html');
 
-function readSpecFromHtml(htmlPath, scriptId) {
-  const html = fs.readFileSync(htmlPath, 'utf8');
-  const re = new RegExp(
-    `<script\\s+id=["']${scriptId}["'][^>]*>([\\s\\S]*?)</script>`,
-    'i'
-  );
-  const m = html.match(re);
-  if (!m) throw new Error(`Spec não encontrada em ${htmlPath} (id=${scriptId})`);
-  return JSON.parse(m[1]);
-}
+const loadYaml = (rel) => yaml.load(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
+const loadText = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
-function readSpecFromYaml(yamlPath) {
-  const txt = fs.readFileSync(yamlPath, 'utf8');
-  return yaml.load(txt);
-}
-
-// catálogo (mesma ordem que o índice antigo)
-const apps = [
-  { key: 'cardiocheck', group: 'clinical', port: 3002, desc: 'Análise cardiovascular — 10 exames lipídicos/inflamatórios, 5 razões e correlações de risco.' },
-  { key: 'glicocheck', group: 'clinical', port: 3003, desc: 'Análise glicêmica — controle de glicose, resistência à insulina (HOMA-IR/Beta) e marcadores metabólicos.' },
-  { key: 'hemocheck', group: 'clinical', port: 3009, desc: 'Hemograma completo — séries vermelha, branca e plaquetária, com razão NLR e correlações hematológicas.' },
-  { key: 'nutricheck', group: 'clinical', port: 3004, desc: 'Análise nutricional — vitaminas, minerais, índices calculados e correlações nutricionais.' },
-  { key: 'osteocheck', group: 'clinical', port: 3005, desc: 'Saúde óssea — 10 marcadores (cálcio, vitamina D, PTH, CTX, P1NP…), razões e correlações.' },
-  { key: 'renalcheck', group: 'clinical', port: 3006, desc: 'Função renal — 7 exames, razão BUN/creatinina, estadiamento DRC G1–G5.' },
-  { key: 'sexcheck', group: 'clinical', port: 3007, desc: 'Hormônios sexuais — perfis masculino e feminino, fase do ciclo, SOP, hipogonadismo.' },
-  { key: 'tireocheck', group: 'clinical', port: 3008, desc: 'Função tireoidiana — TSH, T4L, T3L, T3R, anti-TPO/TG, razão T3L/T3R e correlações.' },
-  { key: 'aquaflow', group: 'habit', port: 3001, desc: 'Hidratação personalizada — perfil, meta diária calculada e slots ao longo do dia.' },
-  { key: 'listaCompras', group: 'habit', port: null, desc: 'Plano alimentar via PDF + LLM, lista de compras com conversão automática e meal-prep.' },
+// Catálogo único: cada entrada vira um app no SPA.
+// `label` herda de `key` quando omitido.
+const catalog = [
+  { key: 'cardiocheck',  group: 'clinical',    port: 3002, spec: 'docs/cardiocheck/openapi.yaml',  desc: 'Análise cardiovascular — 10 exames lipídicos/inflamatórios, 5 razões e correlações de risco.' },
+  { key: 'glicocheck',   group: 'clinical',    port: 3003, spec: 'docs/glicocheck/openapi.yaml',   desc: 'Análise glicêmica — controle de glicose, resistência à insulina (HOMA-IR/Beta) e marcadores metabólicos.' },
+  { key: 'hemocheck',    group: 'clinical',    port: 3009, spec: 'docs/hemocheck/openapi.yaml',    desc: 'Hemograma completo — séries vermelha, branca e plaquetária, com razão NLR e correlações hematológicas.' },
+  { key: 'nutricheck',   group: 'clinical',    port: 3004, spec: 'docs/nutricheck/openapi.yaml',   desc: 'Análise nutricional — vitaminas, minerais, índices calculados e correlações nutricionais.' },
+  { key: 'osteocheck',   group: 'clinical',    port: 3005, spec: 'docs/osteocheck/openapi.yaml',   desc: 'Saúde óssea — 10 marcadores (cálcio, vitamina D, PTH, CTX, P1NP…), razões e correlações.' },
+  { key: 'renalcheck',   group: 'clinical',    port: 3006, spec: 'docs/renalcheck/openapi.yaml',   desc: 'Função renal — 7 exames, razão BUN/creatinina, estadiamento DRC G1–G5.' },
+  { key: 'sexcheck',     group: 'clinical',    port: 3007, spec: 'docs/sexcheck/openapi.yaml',     desc: 'Hormônios sexuais — perfis masculino e feminino, fase do ciclo, SOP, hipogonadismo.' },
+  { key: 'tireocheck',   group: 'clinical',    port: 3008, spec: 'docs/tireocheck/openapi.yaml',   desc: 'Função tireoidiana — TSH, T4L, T3L, T3R, anti-TPO/TG, razão T3L/T3R e correlações.' },
+  { key: 'aquaflow',     group: 'habit',       port: 3001, spec: 'docs/aquaflow/openapi.yaml',     desc: 'Hidratação personalizada — perfil, meta diária calculada e slots ao longo do dia.' },
+  { key: 'listaCompras', group: 'habit',       port: null, spec: 'docs/listaCompras/openapi.yaml', desc: 'Plano alimentar via PDF + LLM, lista de compras com conversão automática e meal-prep.' },
+  { key: 'n360-admin',    label: 'admin',    group: 'nutricao360', port: 3005, spec: 'nutricao360/admin/openapi.yaml',    desc: 'Painel administrativo central — gestão de admins, usuários, exames, planos, relatórios, suplementos, IA, base de conhecimento, FirePay e webhooks.' },
+  { key: 'n360-exames',   label: 'exames',   group: 'nutricao360', port: 3002, spec: 'nutricao360/exames/openapi.yaml',   desc: 'Upload de exames (PDF/OCR Mistral) e análise via IA (OpenRouter) com RAG. SSO por token e integrações Hotmart/Guru.' },
+  { key: 'n360-nutricao', label: 'nutricao', group: 'nutricao360', port: 3003, spec: 'nutricao360/nutricao/openapi.yaml', desc: 'Análise nutricional — reconhece refeições por foto (vision) ou texto, calcula calorias/macros e registra histórico em NutritionLog.' },
+  { key: 'n360-corpo',    label: 'corpo',    group: 'nutricao360', port: 3004, spec: 'nutricao360/corpo/openapi.yaml',    desc: 'Análise corporal a partir de 3 fotos + medidas antropométricas, com histórico, estatísticas e relatório textual.' },
+  { key: 'n360-receitas', label: 'receitas', group: 'nutricao360', port: 3006, spec: 'nutricao360/receitas/openapi.yaml', desc: 'Chat IA de receitas — sessões persistentes com RAG sobre recipe_reference e respostas em JSON.' },
+  { key: 'n360-suporte',  label: 'suporte',  group: 'nutricao360', port: 3005, spec: 'nutricao360/suporte/openapi.yaml',  desc: 'Chat IA de suporte — mesma arquitetura do receitas, com RAG sobre support_reference para dúvidas operacionais.' },
+  { key: 'n360-portal',   label: 'portal',   group: 'nutricao360', port: 3008, spec: 'nutricao360/portal/openapi.yaml',   desc: 'Portal do cliente — login por e-mail, lista documentos aprovados/pendentes por etapa e status CSAT externo.' },
+  { key: 'nps',                 label: 'nps-api', group: 'feedback', port: 3000, spec: 'NPS/nps/openapi.yaml',                desc: 'Pesquisa NPS de alunos — Auth REST (cookie de sessão) + tRPC para submissão pública e dashboard administrativo.' },
+  { key: 'acompanhamento-leads', label: 'leads',  group: 'leads',    port: 3001, spec: 'acompanhamento/specs/leads/openapi.yaml', desc: 'Captura de leads do formulário de acompanhamento nutricional, com sincronização assíncrona ao ActiveCampaign.' },
 ];
 
-// Carrega specs dos apps HealthCheck direto dos YAMLs
-for (const app of apps) {
-  const yamlPath = path.join(DOCS, app.key, 'openapi.yaml');
-  app.spec = readSpecFromYaml(yamlPath);
-}
+const apps = catalog.map((a) => ({ ...a, spec: loadYaml(a.spec) }));
 
-// Catálogo do monorepo Nutricao360 (specs em arquivos openapi.yaml)
-const nutri360Apps = [
-  { key: 'n360-admin',    label: 'admin',    group: 'nutricao360', port: 3005, dir: 'admin',
-    desc: 'Painel administrativo central — gestão de admins, usuários, exames, planos, relatórios, suplementos, IA, base de conhecimento, FirePay e webhooks.' },
-  { key: 'n360-exames',   label: 'exames',   group: 'nutricao360', port: 3002, dir: 'exames',
-    desc: 'Upload de exames (PDF/OCR Mistral) e análise via IA (OpenRouter) com RAG. SSO por token e integrações Hotmart/Guru.' },
-  { key: 'n360-nutricao', label: 'nutricao', group: 'nutricao360', port: 3003, dir: 'nutricao',
-    desc: 'Análise nutricional — reconhece refeições por foto (vision) ou texto, calcula calorias/macros e registra histórico em NutritionLog.' },
-  { key: 'n360-corpo',    label: 'corpo',    group: 'nutricao360', port: 3004, dir: 'corpo',
-    desc: 'Análise corporal a partir de 3 fotos + medidas antropométricas, com histórico, estatísticas e relatório textual.' },
-  { key: 'n360-receitas', label: 'receitas', group: 'nutricao360', port: 3006, dir: 'receitas',
-    desc: 'Chat IA de receitas — sessões persistentes com RAG sobre recipe_reference e respostas em JSON.' },
-  { key: 'n360-suporte',  label: 'suporte',  group: 'nutricao360', port: 3005, dir: 'suporte',
-    desc: 'Chat IA de suporte — mesma arquitetura do receitas, com RAG sobre support_reference para dúvidas operacionais.' },
-  { key: 'n360-portal',   label: 'portal',   group: 'nutricao360', port: 3008, dir: 'portal',
-    desc: 'Portal do cliente — login por e-mail, lista documentos aprovados/pendentes por etapa e status CSAT externo.' },
-];
-
-for (const app of nutri360Apps) {
-  const yamlPath = path.join(N360, app.dir, 'openapi.yaml');
-  app.spec = readSpecFromYaml(yamlPath);
-}
-
-apps.push(...nutri360Apps);
-
-// Catálogo extra: pesquisa NPS e captura de leads do site
-const extraApps = [
-  { key: 'nps', label: 'nps-api', group: 'feedback', port: 3000,
-    yamlPath: path.join(NPS, 'nps', 'openapi.yaml'),
-    desc: 'Pesquisa NPS de alunos — Auth REST (cookie de sessão) + tRPC para submissão pública e dashboard administrativo.' },
-  { key: 'acompanhamento-leads', label: 'leads', group: 'leads', port: 3001,
-    yamlPath: path.join(ACOMP, 'specs', 'leads', 'openapi.yaml'),
-    desc: 'Captura de leads do formulário de acompanhamento nutricional, com sincronização assíncrona ao ActiveCampaign.' },
-];
-
-for (const app of extraApps) {
-  app.spec = readSpecFromYaml(app.yamlPath);
-  delete app.yamlPath;
-}
-
-apps.push(...extraApps);
-
-// Carrega CSAT
-const csatSpec = readSpecFromHtml(path.join(CSAT, 'docs.html'), 'spec');
-
-// Carrega API.md
-const apiMd = fs.readFileSync(path.join(DOCS, 'API.md'), 'utf8');
-const nutri360Md = fs.readFileSync(path.join(N360, 'API.md'), 'utf8');
+const csatSpec = loadYaml('docs-csat/openapi.yaml');
+const apiMd = loadText('docs/API.md');
+const nutri360Md = loadText('nutricao360/API.md');
 
 // Pré-renderiza o HTML "estilo overview" para cada spec (sem Swagger UI).
 // Embutimos só o HTML — a spec crua não precisa mais ir pro cliente.
 const siteData = {
   apps: apps.map(({ key, label, group, port, desc, spec }) => ({
-    key, label: label || key, group, port, desc,
-    title: (spec.info && spec.info.title) || key,
+    key,
+    label: label || key,
+    group,
+    port,
+    desc,
+    title: spec.info?.title || key,
     contentHtml: renderSpecContent(spec),
   })),
   csat: {
     key: 'csat',
-    title: (csatSpec.info && csatSpec.info.title) || 'CSAT Plano Alimentar API',
+    title: csatSpec.info?.title || 'CSAT Plano Alimentar API',
     contentHtml: renderSpecContent(csatSpec),
   },
   overview: apiMd,

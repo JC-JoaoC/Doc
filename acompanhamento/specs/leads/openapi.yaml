@@ -1,0 +1,265 @@
+openapi: 3.0.3
+info:
+  title: API de Leads — Acompanhamento Nutricional
+  version: 1.0.0
+  description: |
+    API interna do formulário de acompanhamento nutricional.
+
+    Recebe submissões do questionário (lead capturado pelo site), persiste no
+    PostgreSQL via Prisma e dispara, em background, a sincronização com o
+    ActiveCampaign (cadastro/atualização de contato, preenchimento de campos
+    personalizados e aplicação da tag `formulario-acompanhamento`).
+
+    A sincronização com o ActiveCampaign é **assíncrona** — o endpoint
+    responde `201` assim que o registro é gravado no banco; falhas no AC são
+    logadas no servidor mas não afetam a resposta ao cliente.
+servers:
+  - url: http://localhost:3001
+    description: Desenvolvimento local
+  - url: /
+    description: Produção (mesmo host do frontend)
+
+tags:
+  - name: Leads
+    description: Captura e listagem de leads do formulário.
+
+paths:
+  /api/leads:
+    post:
+      tags: [Leads]
+      summary: Criar lead
+      description: |
+        Persiste um novo lead originado do formulário e dispara a sincronização
+        com o ActiveCampaign em background.
+
+        - O corpo aceita exatamente o payload calculado pelo frontend, incluindo
+          `scoreTotal`, `classificacao` e `prioridade` (já calculados no cliente).
+        - Campos do tipo array (`motivacao`, `transformacao`, `sintomas`,
+          `contextoSaude`) recebem os **códigos** das opções marcadas; o servidor
+          converte cada código para o rótulo legível antes de enviar ao AC.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadInput'
+      responses:
+        '201':
+          description: Lead criado com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, lead]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  lead:
+                    $ref: '#/components/schemas/Lead'
+        '500':
+          description: Falha ao persistir o lead.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags: [Leads]
+      summary: Listar leads
+      description: |
+        Retorna todos os leads cadastrados, ordenados do mais recente para o
+        mais antigo (`createdAt desc`).
+
+        **Atenção:** não há paginação nem autenticação. Use apenas em ambiente
+        controlado.
+      responses:
+        '200':
+          description: Lista de leads.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lead'
+        '500':
+          description: Falha ao consultar o banco.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    LeadInput:
+      type: object
+      description: Payload aceito por `POST /api/leads`.
+      required:
+        - nome
+        - whatsapp
+        - email
+        - comprometimento
+        - motivacao
+        - transformacao
+        - sintomas
+        - contextoSaude
+        - disponibilidade
+        - investimento
+        - scoreTotal
+        - classificacao
+        - prioridade
+      properties:
+        nome:
+          type: string
+          description: Nome completo do lead.
+          example: Maria Silva
+        whatsapp:
+          type: string
+          description: "WhatsApp com DDD (formato livre, ex.: `(11) 99999-9999`)."
+          example: "(11) 99999-9999"
+        email:
+          type: string
+          format: email
+          example: maria@example.com
+        comprometimento:
+          type: string
+          description: |
+            Resposta da pergunta "Qual frase mais te representa neste momento?".
+            Valores aceitos: `A`, `B`, `C`, `D` (ver `LeadEnums.comprometimento`).
+          enum: [A, B, C, D]
+          example: A
+        motivacao:
+          type: array
+          description: |
+            Códigos das motivações marcadas. Cada código é convertido no
+            servidor para o rótulo correspondente antes de ser enviado ao AC.
+          items:
+            type: string
+            enum: [diabetes, pre_diabetes, sintomas, medicamentos, curiosidade]
+          example: [diabetes, sintomas]
+        transformacao:
+          type: array
+          items:
+            type: string
+            enum: [raiz, urgente, pontual]
+          example: [raiz]
+        sintomas:
+          type: array
+          items:
+            type: string
+            enum: [peso, energia, humor, concentracao, alimentacao, pressao, sono, nenhum]
+          example: [peso, energia]
+        contextoSaude:
+          type: array
+          items:
+            type: string
+            enum: [pre-diabetes, diabetes, resistencia, colesterol, historico, sobrepeso, sop, nenhum]
+          example: [pre-diabetes, sobrepeso]
+        disponibilidade:
+          type: string
+          enum: [A, B, C, D]
+          example: A
+        investimento:
+          type: string
+          enum: [A, B, C, D, E]
+          example: B
+        scoreTotal:
+          type: integer
+          description: Pontuação total calculada no cliente.
+          example: 87
+        classificacao:
+          type: string
+          description: "Classificação textual derivada do score (ex.: `Quente`, `Morno`, `Frio`)."
+          example: Quente
+        prioridade:
+          type: integer
+          description: Prioridade numérica derivada do score.
+          example: 1
+
+    Lead:
+      type: object
+      description: Lead persistido. Espelha o modelo `Lead` do Prisma (`leads` no banco).
+      required:
+        - id
+        - nome
+        - whatsapp
+        - email
+        - comprometimento
+        - motivacao
+        - transformacao
+        - sintomas
+        - contextoSaude
+        - disponibilidade
+        - investimento
+        - scoreTotal
+        - classificacao
+        - prioridade
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 6f3a2c5e-0d0e-4d2f-9d40-7b7e3a17bf21
+        nome:
+          type: string
+          example: Maria Silva
+        whatsapp:
+          type: string
+          example: "(11) 99999-9999"
+        email:
+          type: string
+          format: email
+          example: maria@example.com
+        comprometimento:
+          type: string
+          example: A
+        motivacao:
+          type: array
+          items: { type: string }
+          example: [diabetes, sintomas]
+        transformacao:
+          type: array
+          items: { type: string }
+          example: [raiz]
+        sintomas:
+          type: array
+          items: { type: string }
+          example: [peso, energia]
+        contextoSaude:
+          type: array
+          items: { type: string }
+          description: Mapeado para a coluna `contexto_saude` no banco.
+          example: [pre-diabetes, sobrepeso]
+        disponibilidade:
+          type: string
+          example: A
+        investimento:
+          type: string
+          example: B
+        scoreTotal:
+          type: integer
+          description: Coluna `score_total` no banco.
+          example: 87
+        classificacao:
+          type: string
+          example: Quente
+        prioridade:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+          description: Coluna `created_at` no banco.
+          example: '2026-05-25T14:32:11.000Z'
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        success:
+          type: boolean
+          description: Presente em respostas do `POST /api/leads`.
+          example: false
+        error:
+          type: string
+          example: Erro ao salvar lead

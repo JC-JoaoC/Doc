@@ -1,0 +1,667 @@
+openapi: 3.0.3
+info:
+  title: NPS Alunos API
+  version: 1.0.0
+  description: |
+    API da aplicação **NPS Alunos**. Combina dois transportes:
+
+    - **REST clássico** em `/api/auth/*` para o fluxo de login do painel
+      administrativo (cookie de sessão `app_session_id`).
+    - **tRPC sobre HTTP** em `/api/trpc/<procedure>` para o restante das
+      operações (NPS, autenticação, utilitários do sistema).
+
+    ### Envelope tRPC
+
+    Cada procedure tRPC é exposta como uma rota HTTP. A convenção é:
+
+    - **Queries** (`auth.me`, `system.health`, `nps.dashboard`): chamadas
+      via `GET /api/trpc/<procedure>?input=<json>` — o `input` é JSON
+      URL-encoded.
+    - **Mutations** (`auth.logout`, `system.notifyOwner`, `nps.submit`):
+      chamadas via `POST /api/trpc/<procedure>` com `Content-Type: application/json`
+      e o corpo contendo `{"json": <input>}`.
+
+    Respostas tRPC seguem a estrutura `{"result": {"data": {"json": <payload>}}}`
+    em sucesso e `{"error": {...}}` em falha. O servidor utiliza o
+    transformer **superjson**, então campos como `Date` chegam serializados
+    e são reconstituídos pelo client.
+
+    ### Autenticação
+
+    Procedures `admin*` exigem um cookie `app_session_id` válido (emitido
+    em `POST /api/auth/login`) cujo usuário tenha `role = "admin"`. Procedures
+    `public*` podem ser chamadas sem cookie, mas, se houver cookie válido,
+    o usuário entra no contexto.
+
+servers:
+  - url: http://localhost:3000
+    description: Desenvolvimento local
+
+tags:
+  - name: Auth REST
+    description: Endpoints REST de autenticação (login e cookie de sessão).
+  - name: Auth tRPC
+    description: Procedures tRPC ligadas à sessão do usuário atual.
+  - name: NPS
+    description: Coleta e análise de respostas NPS dos alunos.
+  - name: System
+    description: Healthcheck e utilitários internos.
+
+paths:
+  /api/auth/login:
+    post:
+      tags: [Auth REST]
+      summary: Autentica o administrador e emite cookie de sessão
+      description: |
+        Verifica `email` / `password` contra o usuário admin configurado em
+        `ADMIN_EMAIL`. Em caso de sucesso, grava o cookie HTTP-only
+        `app_session_id` com validade de 1 ano.
+
+        Rate limit: **5 tentativas a cada 15 minutos** por IP.
+      operationId: authLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login bem-sucedido. Cookie `app_session_id` é setado no header `Set-Cookie`.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: app_session_id=eyJhbGciOi...; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "400":
+          description: Payload inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+              example:
+                error: Credenciais inválidas
+        "401":
+          description: E-mail ou senha incorretos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+              example:
+                error: Credenciais inválidas
+        "403":
+          description: Usuário existe mas não tem `role = "admin"`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+              example:
+                error: Acesso não autorizado
+        "429":
+          description: Rate limit excedido (mais de 5 tentativas em 15 min).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+              example:
+                error: Muitas tentativas. Tente novamente em alguns minutos.
+        "500":
+          description: Variável `ADMIN_EMAIL` não configurada no servidor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+              example:
+                error: Auth não configurada
+
+  /api/trpc/auth.me:
+    get:
+      tags: [Auth tRPC]
+      summary: Retorna o usuário autenticado pelo cookie de sessão
+      description: |
+        Lê o cookie `app_session_id`, valida a sessão e devolve o registro
+        do usuário no banco — ou `null` se o cookie não existir ou tiver
+        expirado.
+      operationId: authMe
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TrpcEmptyInput"
+      responses:
+        "200":
+          description: Usuário atual (ou `null` se anônimo).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrpcUserResponse"
+
+  /api/trpc/auth.logout:
+    post:
+      tags: [Auth tRPC]
+      summary: Encerra a sessão atual
+      description: |
+        Limpa o cookie `app_session_id`. Procedure pública: pode ser chamada
+        mesmo sem sessão válida (no-op nesse caso).
+      operationId: authLogout
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrpcEmptyEnvelope"
+      responses:
+        "200":
+          description: Sessão encerrada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrpcLogoutResponse"
+
+  /api/trpc/nps.submit:
+    post:
+      tags: [NPS]
+      summary: Registra uma resposta NPS
+      description: |
+        Aceita o trio **email**, **score (0–10)** e **comment** opcional.
+        Persiste em `npsResponses` e, em background (fire-and-forget),
+        sincroniza tag e custom field no ActiveCampaign. Procedure pública:
+        qualquer aluno pode submeter sem login.
+
+        O `email` é normalizado para *lowercase* antes de gravar e os campos
+        `name` e `whatsapp` na tabela recebem placeholders (`email` no
+        nome e `"Não informado"` no whatsapp) — vestígios do esquema
+        original do formulário.
+      operationId: npsSubmit
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [json]
+              properties:
+                json:
+                  $ref: "#/components/schemas/NpsSubmitInput"
+      responses:
+        "200":
+          description: Resposta registrada com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrpcNpsSubmitResponse"
+        "400":
+          description: Payload inválido (zod parse error).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrpcErrorResponse"
+
+  /api/trpc/nps.dashboard:
+    get:
+      tags: [NPS]
+      summary: Lista respostas + métricas NPS agregadas
+      description: |
+        Devolve todas as respostas (mais recentes primeiro) e os indicadores
+        agregados: total, promotores, neutros, detratores, percentuais e o
+        **NPS Score** final (`% promotores − % detratores`, arredondado).
+
+        Cada resposta vem enriquecida com `category` (`promoter` / `neutral` /
+        `detractor`) e `categoryLabel` em PT-BR.
+
+        Exige sessão admin.
+      operationId: npsDashboard
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TrpcEmptyInput"
+      responses:
+        "200":
+          description: Lista de respostas e métricas.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrpcNpsDashboardResponse"
+        "403":
+          description: Usuário não autenticado ou sem `role = admin`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrpcErrorResponse"
+
+  /api/trpc/system.health:
+    get:
+      tags: [System]
+      summary: Healthcheck simples
+      description: |
+        Retorna `{ ok: true }`. Procedure pública. Recebe um `timestamp`
+        no input apenas para forçar o client a enviar payload (cache-buster).
+      operationId: systemHealth
+      security: []
+      parameters:
+        - name: input
+          in: query
+          required: true
+          description: |
+            Input tRPC URL-encoded. Formato:
+            `{"json":{"timestamp": <unix-ms>}}`
+          schema:
+            type: string
+          example: '{"json":{"timestamp":1716640000000}}'
+      responses:
+        "200":
+          description: Servidor está respondendo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrpcHealthResponse"
+
+  /api/trpc/system.notifyOwner:
+    post:
+      tags: [System]
+      summary: Dispara notificação para o owner do projeto
+      description: |
+        Envia uma notificação (canal definido em `server/_core/notification.ts`)
+        com `title` e `content`. Exige sessão admin.
+      operationId: systemNotifyOwner
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [json]
+              properties:
+                json:
+                  $ref: "#/components/schemas/NotifyOwnerInput"
+      responses:
+        "200":
+          description: Notificação processada (campo `success` indica entrega).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrpcNotifyOwnerResponse"
+        "403":
+          description: Sem permissão de admin.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrpcErrorResponse"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: app_session_id
+      description: |
+        Cookie HTTP-only emitido por `POST /api/auth/login`. Validade de
+        1 ano. Procedures `admin*` exigem que o usuário associado tenha
+        `role = "admin"`.
+
+  parameters:
+    TrpcEmptyInput:
+      name: input
+      in: query
+      required: false
+      description: |
+        Input tRPC URL-encoded. Para procedures sem input, basta omitir ou
+        passar `{}`.
+      schema:
+        type: string
+      example: "{}"
+
+  schemas:
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          description: E-mail do administrador (será normalizado para lowercase).
+          example: admin@example.com
+        password:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: senha-secreta
+
+    AuthErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: Credenciais inválidas
+
+    NpsSubmitInput:
+      type: object
+      required: [email, score]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          description: E-mail do respondente.
+          example: aluno@example.com
+        score:
+          type: integer
+          minimum: 0
+          maximum: 10
+          description: Nota NPS de 0 a 10.
+          example: 9
+        comment:
+          type: string
+          maxLength: 4000
+          nullable: true
+          description: |
+            Comentário opcional do aluno. Aceita string vazia (será
+            normalizada para `null` no banco).
+          example: Curso excelente, ritmo bem dosado.
+
+    NotifyOwnerInput:
+      type: object
+      required: [title, content]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          example: Alerta de aluno detrator
+        content:
+          type: string
+          minLength: 1
+          example: Aluno deu nota 3 e deixou comentário negativo no formulário.
+
+    User:
+      type: object
+      required: [id, role, createdAt, updatedAt, lastSignedIn]
+      properties:
+        id:
+          type: integer
+          example: 1
+        openId:
+          type: string
+          nullable: true
+          example: usr_01HXYZ...
+        name:
+          type: string
+          nullable: true
+          example: Admin
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: admin@example.com
+        loginMethod:
+          type: string
+          nullable: true
+          example: password
+        role:
+          type: string
+          enum: [user, admin]
+          example: admin
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastSignedIn:
+          type: string
+          format: date-time
+
+    NpsResponse:
+      type: object
+      required: [id, name, email, whatsapp, score, submittedAt]
+      properties:
+        id:
+          type: integer
+          example: 42
+        name:
+          type: string
+          example: aluno@example.com
+        email:
+          type: string
+          format: email
+          example: aluno@example.com
+        whatsapp:
+          type: string
+          example: Não informado
+        score:
+          type: integer
+          minimum: 0
+          maximum: 10
+          example: 9
+        comment:
+          type: string
+          nullable: true
+          example: Curso excelente, ritmo bem dosado.
+        additionalFeedback:
+          type: string
+          nullable: true
+          example: null
+        submittedAt:
+          type: string
+          format: date-time
+          example: "2026-05-20T14:32:11.000Z"
+
+    NpsCategory:
+      type: string
+      enum: [promoter, neutral, detractor]
+      description: |
+        Categorização automática derivada do score:
+        - **promoter** — score ≥ 9
+        - **neutral** — score 7–8
+        - **detractor** — score ≤ 6
+
+    NpsResponseEnriched:
+      allOf:
+        - $ref: "#/components/schemas/NpsResponse"
+        - type: object
+          required: [category, categoryLabel]
+          properties:
+            category:
+              $ref: "#/components/schemas/NpsCategory"
+            categoryLabel:
+              type: string
+              description: Rótulo em PT-BR (`Promotor`, `Neutro`, `Detrator`).
+              example: Promotor
+
+    NpsMetrics:
+      type: object
+      required:
+        - total
+        - promoters
+        - neutrals
+        - detractors
+        - promoterPercentage
+        - neutralPercentage
+        - detractorPercentage
+        - npsScore
+      properties:
+        total:
+          type: integer
+          example: 120
+        promoters:
+          type: integer
+          example: 72
+        neutrals:
+          type: integer
+          example: 30
+        detractors:
+          type: integer
+          example: 18
+        promoterPercentage:
+          type: number
+          example: 60
+        neutralPercentage:
+          type: number
+          example: 25
+        detractorPercentage:
+          type: number
+          example: 15
+        npsScore:
+          type: integer
+          description: NPS final, arredondado. `promoter% − detractor%`.
+          example: 45
+
+    TrpcEmptyEnvelope:
+      type: object
+      properties:
+        json:
+          type: object
+          nullable: true
+      example: {}
+
+    TrpcUserResponse:
+      type: object
+      required: [result]
+      properties:
+        result:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                json:
+                  oneOf:
+                    - $ref: "#/components/schemas/User"
+                    - type: "null"
+
+    TrpcLogoutResponse:
+      type: object
+      required: [result]
+      properties:
+        result:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                json:
+                  type: object
+                  required: [success]
+                  properties:
+                    success:
+                      type: boolean
+                      example: true
+
+    TrpcNpsSubmitResponse:
+      type: object
+      required: [result]
+      properties:
+        result:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                json:
+                  type: object
+                  required: [success, message]
+                  properties:
+                    success:
+                      type: boolean
+                      example: true
+                    message:
+                      type: string
+                      example: Resposta registrada com sucesso.
+
+    TrpcNpsDashboardResponse:
+      type: object
+      required: [result]
+      properties:
+        result:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                json:
+                  type: object
+                  required: [metrics, responses]
+                  properties:
+                    metrics:
+                      $ref: "#/components/schemas/NpsMetrics"
+                    responses:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/NpsResponseEnriched"
+
+    TrpcHealthResponse:
+      type: object
+      required: [result]
+      properties:
+        result:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                json:
+                  type: object
+                  required: [ok]
+                  properties:
+                    ok:
+                      type: boolean
+                      example: true
+
+    TrpcNotifyOwnerResponse:
+      type: object
+      required: [result]
+      properties:
+        result:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                json:
+                  type: object
+                  required: [success]
+                  properties:
+                    success:
+                      type: boolean
+                      example: true
+
+    TrpcErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Please login (10001)
+            code:
+              type: integer
+              example: -32001
+            data:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: UNAUTHORIZED
+                httpStatus:
+                  type: integer
+                  example: 401
+                path:
+                  type: string
+                  example: nps.dashboard

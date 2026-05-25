@@ -13,6 +13,8 @@ const ROOT = __dirname;
 const DOCS = path.join(ROOT, 'docs');
 const CSAT = path.join(ROOT, 'docs-csat');
 const N360 = path.join(ROOT, 'nutricao360');
+const NPS  = path.join(ROOT, 'NPS');
+const ACOMP = path.join(ROOT, 'acompanhamento');
 const OUT = path.join(ROOT, 'index.html');
 
 function readSpecFromHtml(htmlPath, scriptId) {
@@ -75,6 +77,23 @@ for (const app of nutri360Apps) {
 }
 
 apps.push(...nutri360Apps);
+
+// Catálogo extra: pesquisa NPS e captura de leads do site
+const extraApps = [
+  { key: 'nps', label: 'nps-api', group: 'feedback', port: 3000,
+    yamlPath: path.join(NPS, 'nps', 'openapi.yaml'),
+    desc: 'Pesquisa NPS de alunos — Auth REST (cookie de sessão) + tRPC para submissão pública e dashboard administrativo.' },
+  { key: 'acompanhamento-leads', label: 'leads', group: 'leads', port: 3001,
+    yamlPath: path.join(ACOMP, 'specs', 'leads', 'openapi.yaml'),
+    desc: 'Captura de leads do formulário de acompanhamento nutricional, com sincronização assíncrona ao ActiveCampaign.' },
+];
+
+for (const app of extraApps) {
+  app.spec = readSpecFromYaml(app.yamlPath);
+  delete app.yamlPath;
+}
+
+apps.push(...extraApps);
 
 // Carrega CSAT
 const csatSpec = readSpecFromHtml(path.join(CSAT, 'docs.html'), 'spec');
@@ -170,6 +189,8 @@ ${cofounderCss}
       <a href="#/overview">Overview</a>
       <a href="#/n360-overview">Nutricao360</a>
       <a href="#/csat">CSAT</a>
+      <a href="#/nps">NPS</a>
+      <a href="#/acompanhamento-leads">Acompanhamento</a>
     </nav>
     <div class="cf-spacer"></div>
     <input id="search" class="cf-search" type="search" placeholder="Buscar app…" />
@@ -195,6 +216,13 @@ ${cofounderCss}
 
       <div class="cf-group" data-section="other">Pesquisa &amp; satisfação</div>
       <a class="cf-nav-item" data-route="csat" href="#/csat">CSAT Plano Alimentar<span class="cf-tag">REST</span></a>
+      <!-- NPS preenchido por JS no grupo feedback -->
+
+      <div class="cf-group" data-section="feedback">NPS</div>
+      <!-- preenchido por JS -->
+
+      <div class="cf-group" data-section="leads">Captura de leads</div>
+      <!-- preenchido por JS -->
     </aside>
 
     <main class="cf-main">
@@ -221,6 +249,8 @@ ${cofounderCss}
         <div class="cf-cards-section"><div class="cf-cards" id="cardsHabit"></div></div>
         <div class="cf-cards-section"><div class="cf-cards" id="cardsNutri360"></div></div>
         <div class="cf-cards-section"><div class="cf-cards" id="cardsOther"></div></div>
+        <div class="cf-cards-section"><div class="cf-cards" id="cardsFeedback"></div></div>
+        <div class="cf-cards-section"><div class="cf-cards" id="cardsLeads"></div></div>
         <article class="cf-content" id="overviewMd"></article>
       </section>
 
@@ -293,14 +323,20 @@ ${cofounderCss}
       const clinical = apps.filter(a => a.group === 'clinical');
       const habit = apps.filter(a => a.group === 'habit');
       const nutri360 = apps.filter(a => a.group === 'nutricao360');
+      const feedback = apps.filter(a => a.group === 'feedback');
+      const leads = apps.filter(a => a.group === 'leads');
       const clinHtml = clinical.map(a => navItemHtml(a.key, a.label, a.port)).join('');
       const habitHtml = habit.map(a => navItemHtml(a.key, a.label, a.port || '—')).join('');
       const n360Html = nutri360.map(a => navItemHtml(a.key, a.label, a.port)).join('');
+      const feedbackHtml = feedback.map(a => navItemHtml(a.key, a.label, a.port)).join('');
+      const leadsHtml = leads.map(a => navItemHtml(a.key, a.label, a.port)).join('');
       sidebar.querySelector('[data-section="clinical"]').insertAdjacentHTML('afterend', clinHtml);
       sidebar.querySelector('[data-section="habit"]').insertAdjacentHTML('afterend', habitHtml);
       // o item "Visão geral" do nutricao360 já está hard-coded; inserimos os apps abaixo dele
       const n360OverviewItem = sidebar.querySelector('a.cf-nav-item[data-route="n360-overview"]');
       n360OverviewItem.insertAdjacentHTML('afterend', n360Html);
+      sidebar.querySelector('[data-section="feedback"]').insertAdjacentHTML('afterend', feedbackHtml);
+      sidebar.querySelector('[data-section="leads"]').insertAdjacentHTML('afterend', leadsHtml);
     }
 
     function cardHtml(a) {
@@ -338,6 +374,12 @@ ${cofounderCss}
           <p>Pesquisa de satisfação de planos alimentares — login JWT, registro público de respostas e enriquecimento via Nutrição 360.</p>
           <span class="cf-card-link">Abrir →</span>
         </a>\`;
+      document.getElementById('cardsFeedback').innerHTML =
+        sectionHeader('NPS') +
+        apps.filter(a => a.group === 'feedback').map(cardHtml).join('');
+      document.getElementById('cardsLeads').innerHTML =
+        sectionHeader('Captura de leads') +
+        apps.filter(a => a.group === 'leads').map(cardHtml).join('');
     }
 
     // ---------- ROUTER ----------

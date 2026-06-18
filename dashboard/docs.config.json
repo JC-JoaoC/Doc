@@ -1,0 +1,28 @@
+{
+  "title": "dashboard · Docs",
+  "brand": "dashboard",
+  "heroEyebrow": "Documentação",
+  "heroTitle": "Painel de Atendimento, Suporte & Nutrição",
+  "heroLede": "Documentação consolidada da API do backend e do cálculo de cada métrica do painel.",
+  "output": "index.html",
+
+  "groups": [
+    { "key": "api", "label": "API" },
+    { "key": "metricas", "label": "Métricas" }
+  ],
+
+  "overviews": [
+    { "key": "metricas", "label": "Cálculo das Métricas", "group": "metricas", "file": "overviews/metricas.md" }
+  ],
+
+  "apps": [
+    {
+      "key": "api",
+      "label": "API do Painel",
+      "group": "api",
+      "tag": "3001",
+      "spec": "openapi/api.yaml",
+      "desc": "Reembolsos, Atendimentos, NPS, CSAT, autenticação e proxy de IA (OpenRouter)."
+    }
+  ]
+}

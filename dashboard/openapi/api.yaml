@@ -1,0 +1,485 @@
+openapi: 3.0.3
+info:
+  title: API do Painel (dashboard)
+  version: "1.0.0"
+  description: >
+    API server-side do painel de Atendimento, Suporte e Nutrição. Agrega dados
+    de Reembolsos (Guru → MySQL), Atendimentos (DataCrazy → MySQL), NPS (MySQL
+    externo) e CSAT do Plano Alimentar (Postgres externo), além de autenticação
+    e do proxy de IA (OpenRouter). Salvo `/api/health` e `/api/auth/login`,
+    todas as rotas exigem `Authorization: Bearer <token>`.
+servers:
+  - url: http://localhost:3001
+    description: Desenvolvimento local
+tags:
+  - name: Saúde
+  - name: Autenticação
+  - name: Usuários
+  - name: Reembolsos
+  - name: Atendimentos
+  - name: NPS
+  - name: CSAT
+  - name: IA
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtido em `POST /api/auth/login`.
+  parameters:
+    from:
+      name: from
+      in: query
+      description: Início do período (YYYY-MM-DD). Padrão = 1º de janeiro do ano corrente.
+      schema: { type: string, format: date, example: "2026-01-01" }
+    to:
+      name: to
+      in: query
+      description: Fim do período (YYYY-MM-DD). Padrão = hoje (UTC).
+      schema: { type: string, format: date, example: "2026-06-17" }
+    limit:
+      name: limit
+      in: query
+      description: Máximo de comentários (teto 500).
+      schema: { type: integer, default: 200, maximum: 500 }
+  schemas:
+    Erro:
+      type: object
+      properties:
+        error: { type: string, example: "Datas inválidas (use YYYY-MM-DD)." }
+    Periodo:
+      type: object
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+    BlocoReembolso:
+      type: object
+      description: KPIs de um bloco (Total ou Ajustado) com variações vs. período anterior.
+      properties:
+        qtd: { type: integer, example: 2865 }
+        valor: { type: number, example: 184250 }
+        taxa: { type: number, description: "Taxa de reembolso (%).", example: 11.4 }
+        deltaQtd: { type: number, nullable: true, example: 10.2 }
+        deltaValor: { type: number, nullable: true, example: 8.7 }
+        deltaTaxa: { type: number, nullable: true, description: "Variação em pontos percentuais.", example: 0.6 }
+    Motivo:
+      type: object
+      properties:
+        code: { type: integer, nullable: true, example: 23 }
+        label: { type: string, example: "Preferiu não informar o motivo" }
+        grupo: { type: string, example: "Outros" }
+        acao: { type: string, nullable: true }
+        qtd: { type: integer, example: 1055 }
+        part: { type: number, description: "Participação (%).", example: 36.8 }
+        excl: { type: boolean, description: "Excluído na visão Ajustada." }
+    ReembolsosOverview:
+      type: object
+      properties:
+        vendasAprovadas: { type: integer, example: 25105 }
+        periodoAnterior: { $ref: '#/components/schemas/Periodo' }
+        total: { $ref: '#/components/schemas/BlocoReembolso' }
+        ajustado: { $ref: '#/components/schemas/BlocoReembolso' }
+        motivos:
+          type: array
+          items: { $ref: '#/components/schemas/Motivo' }
+        evolucao:
+          type: array
+          items:
+            type: object
+            properties:
+              mes: { type: string, example: "06/2026" }
+              total: { type: number, example: 11.4 }
+              ajustado: { type: number, example: 6.4 }
+    MetricaGrupo:
+      type: object
+      description: Indicador (taxa/tempo/volume) com recortes por departamento e atendente.
+      properties:
+        geral: { type: number, example: 78.3 }
+        porDepto:
+          type: array
+          items:
+            type: object
+            properties:
+              depto: { type: string }
+              valor: { type: number }
+        porAtendente:
+          type: array
+          items:
+            type: object
+            properties:
+              nome: { type: string }
+              depto: { type: string }
+              valor: { type: number }
+              qtd: { type: integer }
+    AtendimentosOverview:
+      type: object
+      properties:
+        slaMinutes: { type: integer, example: 15 }
+        periodoAnterior: { $ref: '#/components/schemas/Periodo' }
+        taxa: { $ref: '#/components/schemas/MetricaGrupo' }
+        tempo: { $ref: '#/components/schemas/MetricaGrupo' }
+        volume: { $ref: '#/components/schemas/MetricaGrupo' }
+        deltas:
+          type: object
+          properties:
+            taxa: { type: number, nullable: true }
+            tempo: { type: number, nullable: true }
+            volume: { type: number, nullable: true }
+    NpsOverview:
+      type: object
+      properties:
+        geral: { type: integer, description: "Índice NPS (−100 a +100).", example: 45 }
+        distribuicao:
+          type: object
+          properties:
+            promotores: { type: integer, example: 60 }
+            neutros: { type: integer, example: 25 }
+            detratores: { type: integer, example: 15 }
+        respostas: { type: integer, example: 200 }
+        taxaResposta: { type: number, example: 0 }
+        deltaGeral: { type: number, nullable: true, description: "Variação em pontos de NPS.", example: 7 }
+        periodoAnterior: { $ref: '#/components/schemas/Periodo' }
+        evolucao:
+          type: array
+          items:
+            type: object
+            properties:
+              periodo: { type: string, example: "06/2026" }
+              nps: { type: integer, example: 45 }
+              meta: { type: integer, example: 70 }
+    CsatPlanoOverview:
+      type: object
+      properties:
+        geral: { type: number, description: "Média das 5 dimensões (1–5).", example: 4.28 }
+        respostas: { type: integer, example: 612 }
+        deltaGeral: { type: number, nullable: true, description: "Variação em pontos (escala 1–5)." }
+        periodoAnterior: { $ref: '#/components/schemas/Periodo' }
+        porNutricionista:
+          type: array
+          items:
+            type: object
+            properties:
+              nome: { type: string, example: "Karine Queiroz" }
+              valor: { type: number, example: 4.52 }
+              respostas: { type: integer, example: 18 }
+        porDimensao:
+          type: object
+          properties:
+            clarity: { type: number, example: 4.54 }
+            routine: { type: number, example: 4.08 }
+            variety: { type: number, example: 4.24 }
+            preferences: { type: number, example: 4.27 }
+            satisfaction: { type: number, example: 4.25 }
+        recommend: { type: number, nullable: true, example: 8.68 }
+        evolucao:
+          type: array
+          items:
+            type: object
+            properties:
+              periodo: { type: string, example: "12/05" }
+              nota: { type: number, example: 4.3 }
+    Comentarios:
+      type: object
+      properties:
+        comentarios:
+          type: array
+          items:
+            type: object
+            properties:
+              score: { type: number, nullable: true }
+              texto: { type: string }
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/health:
+    get:
+      tags: [Saúde]
+      summary: Status do serviço e do banco
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  db: { type: string, example: "ok" }
+                  orders: { type: integer, example: 44817 }
+                  uptime: { type: integer }
+        "503": { description: Banco indisponível }
+
+  /api/auth/login:
+    post:
+      tags: [Autenticação]
+      summary: Login (e-mail + senha) → token JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, senha]
+              properties:
+                email: { type: string, example: "admin@ts.com" }
+                senha: { type: string, format: password }
+      responses:
+        "200":
+          description: Autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      email: { type: string }
+                      role: { type: string, example: "master" }
+        "401": { description: Credenciais inválidas, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+        "429": { description: Muitas tentativas (rate limit) }
+
+  /api/auth/me:
+    get:
+      tags: [Autenticação]
+      summary: Dados do usuário autenticado
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      email: { type: string }
+                      role: { type: string }
+        "401": { description: Sessão expirada }
+
+  /api/users:
+    get:
+      tags: [Usuários]
+      summary: Listar usuários (somente master)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuarios: { type: array, items: { type: object } }
+        "403": { description: Requer perfil master }
+    post:
+      tags: [Usuários]
+      summary: Criar usuário (somente master)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, email, senha]
+              properties:
+                nome: { type: string }
+                email: { type: string }
+                senha: { type: string, format: password }
+                role: { type: string }
+      responses:
+        "201": { description: Criado }
+        "403": { description: Requer perfil master }
+
+  /api/users/{id}:
+    patch:
+      tags: [Usuários]
+      summary: Atualizar usuário (somente master)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200": { description: Atualizado }
+        "403": { description: Requer perfil master }
+    delete:
+      tags: [Usuários]
+      summary: Remover usuário (somente master)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Removido }
+        "403": { description: Requer perfil master }
+
+  /api/reembolsos/overview:
+    get:
+      tags: [Reembolsos]
+      summary: KPIs de reembolsos (Total vs. Ajustado), motivos e evolução
+      parameters:
+        - { $ref: '#/components/parameters/from' }
+        - { $ref: '#/components/parameters/to' }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReembolsosOverview' }
+        "400": { description: Datas inválidas }
+
+  /api/atendimentos/overview:
+    get:
+      tags: [Atendimentos]
+      summary: SLA, tempo (mediana) e volume por atendente/departamento
+      parameters:
+        - { $ref: '#/components/parameters/from' }
+        - { $ref: '#/components/parameters/to' }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AtendimentosOverview' }
+
+  /api/nps/overview:
+    get:
+      tags: [NPS]
+      summary: Índice NPS, distribuição e evolução
+      parameters:
+        - { $ref: '#/components/parameters/from' }
+        - { $ref: '#/components/parameters/to' }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NpsOverview' }
+
+  /api/nps/comments:
+    get:
+      tags: [NPS]
+      summary: Comentários de NPS (para análise de IA)
+      parameters:
+        - { $ref: '#/components/parameters/from' }
+        - { $ref: '#/components/parameters/to' }
+        - { $ref: '#/components/parameters/limit' }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comentarios' }
+
+  /api/csat/plano/overview:
+    get:
+      tags: [CSAT]
+      summary: CSAT do plano alimentar — geral, por nutricionista, dimensões
+      parameters:
+        - { $ref: '#/components/parameters/from' }
+        - { $ref: '#/components/parameters/to' }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CsatPlanoOverview' }
+
+  /api/csat/plano/comments:
+    get:
+      tags: [CSAT]
+      summary: Comentários do CSAT do plano (para análise de IA)
+      parameters:
+        - { $ref: '#/components/parameters/from' }
+        - { $ref: '#/components/parameters/to' }
+        - { $ref: '#/components/parameters/limit' }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comentarios' }
+
+  /api/ai/insights:
+    post:
+      tags: [IA]
+      summary: Gera insights (resumo, elogios, críticas, sugestões) via OpenRouter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scopeContexto: { type: string }
+                comentarios: { type: array, items: { type: string } }
+                model: { type: string, example: "google/gemini-2.5-pro" }
+                temperatura: { type: number, example: 0.3 }
+                maxTokens: { type: integer, example: 4000 }
+                systemPrompt: { type: string }
+                apiKey: { type: string, description: "Override opcional da chave (se permitido)." }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resumo: { type: string }
+                  reclamacoes: { type: array, items: { type: string } }
+                  elogios: { type: array, items: { type: string } }
+                  sugestoes: { type: array, items: { type: string } }
+                  provider: { type: string, example: "openrouter" }
+        "400": { description: Sem comentários para analisar }
+        "503": { description: IA indisponível (sem chave configurada) }
+
+  /api/ai/test:
+    post:
+      tags: [IA]
+      summary: Valida uma credencial do OpenRouter
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                apiKey: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  erro: { type: string, nullable: true }
+
+  /api/ai/config:
+    get:
+      tags: [IA]
+      summary: Configuração de IA atual
+      responses:
+        "200": { description: OK }
+    put:
+      tags: [IA]
+      summary: Atualiza a configuração de IA (somente master)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200": { description: Salvo }
+        "403": { description: Requer perfil master }

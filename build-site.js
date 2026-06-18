@@ -36,6 +36,7 @@ const catalog = [
   { key: 'n360-portal',   label: 'portal',   group: 'nutricao360', port: 3008, spec: 'nutricao360/portal/openapi.yaml',   desc: 'Portal do cliente — login por e-mail, lista documentos aprovados/pendentes por etapa e status CSAT externo.' },
   { key: 'nps',                 label: 'nps-api', group: 'feedback', port: 3000, spec: 'NPS/nps/openapi.yaml',                desc: 'Pesquisa NPS de alunos — Auth REST (cookie de sessão) + tRPC para submissão pública e dashboard administrativo.' },
   { key: 'acompanhamento-leads', label: 'leads',  group: 'leads',    port: 3001, spec: 'acompanhamento/specs/leads/openapi.yaml', desc: 'Captura de leads do formulário de acompanhamento nutricional, com sincronização assíncrona ao ActiveCampaign.' },
+  { key: 'dash-api', label: 'API do Painel', group: 'dashboard', port: 3001, spec: 'dashboard/openapi/api.yaml', desc: 'Reembolsos, Atendimentos, NPS, CSAT, autenticação e proxy de IA (OpenRouter) do painel dashboard.' },
 ];
 
 const apps = catalog.map((a) => ({ ...a, spec: loadYaml(a.spec) }));
@@ -43,6 +44,7 @@ const apps = catalog.map((a) => ({ ...a, spec: loadYaml(a.spec) }));
 const csatSpec = loadYaml('docs-csat/openapi.yaml');
 const apiMd = loadText('docs/API.md');
 const nutri360Md = loadText('nutricao360/API.md');
+const dashMetricasMd = loadText('dashboard/overviews/metricas.md');
 
 // Pré-renderiza o HTML "estilo overview" para cada spec (sem Swagger UI).
 // Embutimos só o HTML — a spec crua não precisa mais ir pro cliente.
@@ -63,6 +65,7 @@ const siteData = {
   },
   overview: apiMd,
   nutri360Overview: nutri360Md,
+  dashMetricasOverview: dashMetricasMd,
 };
 
 const dataJson = JSON.stringify(siteData)
@@ -120,6 +123,25 @@ ${cofounderCss}
       color: var(--muted-2);
     }
     /* markdown reaproveita .cf-content */
+
+    /* grupos colapsáveis na sidebar */
+    .cf-sidebar .cf-group {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none;
+    }
+    .cf-sidebar .cf-group::after {
+      content: "";
+      width: 7px; height: 7px;
+      border-right: 1.5px solid currentColor;
+      border-bottom: 1.5px solid currentColor;
+      transform: rotate(45deg);
+      transition: transform .15s ease;
+      opacity: .55;
+      margin: 0 4px 2px 8px;
+    }
+    .cf-sidebar .cf-group:hover::after { opacity: .9; }
+    .cf-sidebar .cf-group.is-collapsed::after { transform: rotate(-45deg); }
+    .cf-sidebar a.cf-nav-item.is-hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -137,6 +159,7 @@ ${cofounderCss}
       <a href="#/csat">CSAT</a>
       <a href="#/nps">NPS</a>
       <a href="#/acompanhamento-leads">Acompanhamento</a>
+      <a href="#/dash-metricas">dashboard</a>
     </nav>
     <div class="cf-spacer"></div>
     <input id="search" class="cf-search" type="search" placeholder="Buscar app…" />
@@ -169,6 +192,10 @@ ${cofounderCss}
 
       <div class="cf-group" data-section="leads">Captura de leads</div>
       <!-- preenchido por JS -->
+
+      <div class="cf-group" data-section="dashboard">dashboard · Painel</div>
+      <a class="cf-nav-item" data-route="dash-metricas" href="#/dash-metricas">Cálculo das Métricas<span class="cf-tag">md</span></a>
+      <!-- apps do dashboard preenchidos por JS -->
     </aside>
 
     <main class="cf-main">
@@ -197,12 +224,18 @@ ${cofounderCss}
         <div class="cf-cards-section"><div class="cf-cards" id="cardsOther"></div></div>
         <div class="cf-cards-section"><div class="cf-cards" id="cardsFeedback"></div></div>
         <div class="cf-cards-section"><div class="cf-cards" id="cardsLeads"></div></div>
+        <div class="cf-cards-section"><div class="cf-cards" id="cardsDashboard"></div></div>
         <article class="cf-content" id="overviewMd"></article>
       </section>
 
       <!-- view: nutricao360 overview -->
       <section class="view" id="view-n360-overview">
         <article class="cf-content" id="n360OverviewMd"></article>
+      </section>
+
+      <!-- view: dashboard métricas overview -->
+      <section class="view" id="view-dash-metricas">
+        <article class="cf-content" id="dashMetricasMd"></article>
       </section>
 
       <!-- view: spec (reutilizada para cada app) -->
@@ -271,11 +304,13 @@ ${cofounderCss}
       const nutri360 = apps.filter(a => a.group === 'nutricao360');
       const feedback = apps.filter(a => a.group === 'feedback');
       const leads = apps.filter(a => a.group === 'leads');
+      const dashboard = apps.filter(a => a.group === 'dashboard');
       const clinHtml = clinical.map(a => navItemHtml(a.key, a.label, a.port)).join('');
       const habitHtml = habit.map(a => navItemHtml(a.key, a.label, a.port || '—')).join('');
       const n360Html = nutri360.map(a => navItemHtml(a.key, a.label, a.port)).join('');
       const feedbackHtml = feedback.map(a => navItemHtml(a.key, a.label, a.port)).join('');
       const leadsHtml = leads.map(a => navItemHtml(a.key, a.label, a.port)).join('');
+      const dashboardHtml = dashboard.map(a => navItemHtml(a.key, a.label, a.port)).join('');
       sidebar.querySelector('[data-section="clinical"]').insertAdjacentHTML('afterend', clinHtml);
       sidebar.querySelector('[data-section="habit"]').insertAdjacentHTML('afterend', habitHtml);
       // o item "Visão geral" do nutricao360 já está hard-coded; inserimos os apps abaixo dele
@@ -283,6 +318,9 @@ ${cofounderCss}
       n360OverviewItem.insertAdjacentHTML('afterend', n360Html);
       sidebar.querySelector('[data-section="feedback"]').insertAdjacentHTML('afterend', feedbackHtml);
       sidebar.querySelector('[data-section="leads"]').insertAdjacentHTML('afterend', leadsHtml);
+      // o item "Cálculo das Métricas" do dashboard já está hard-coded; inserimos os apps abaixo dele
+      const dashOverviewItem = sidebar.querySelector('a.cf-nav-item[data-route="dash-metricas"]');
+      dashOverviewItem.insertAdjacentHTML('afterend', dashboardHtml);
     }
 
     function cardHtml(a) {
@@ -326,6 +364,38 @@ ${cofounderCss}
       document.getElementById('cardsLeads').innerHTML =
         sectionHeader('Captura de leads') +
         apps.filter(a => a.group === 'leads').map(cardHtml).join('');
+      document.getElementById('cardsDashboard').innerHTML =
+        sectionHeader('dashboard · Painel de Atendimento, Suporte & Nutrição') +
+        \`<a class="cf-card" data-route="dash-metricas" href="#/dash-metricas">
+          <div class="cf-card-head"><h3>Cálculo das Métricas</h3><span class="cf-tag">md</span></div>
+          <p>Referência técnica de como cada indicador do painel é calculado — fonte de dados, fórmula exata e o arquivo onde vive a lógica.</p>
+          <span class="cf-card-link">Abrir →</span>
+        </a>\` +
+        apps.filter(a => a.group === 'dashboard').map(cardHtml).join('');
+    }
+
+    // ---------- COLAPSO DE GRUPOS NA SIDEBAR ----------
+    // Cada título de grupo esconde/mostra os itens (subtítulos) abaixo dele,
+    // até o próximo título de grupo.
+    function setGroupCollapsed(group, collapsed) {
+      group.classList.toggle('is-collapsed', collapsed);
+      let el = group.nextElementSibling;
+      while (el && !el.classList.contains('cf-group')) {
+        if (el.classList.contains('cf-nav-item')) {
+          el.classList.toggle('is-hidden', collapsed);
+        }
+        el = el.nextElementSibling;
+      }
+    }
+
+    function setupGroupCollapse() {
+      sidebar.querySelectorAll('.cf-group').forEach(group => {
+        // começa recolhido por padrão
+        setGroupCollapsed(group, true);
+        group.addEventListener('click', () => {
+          setGroupCollapsed(group, !group.classList.contains('is-collapsed'));
+        });
+      });
     }
 
     // ---------- ROUTER ----------
@@ -339,13 +409,17 @@ ${cofounderCss}
       // views
       const isOverview = route === 'overview';
       const isN360Overview = route === 'n360-overview';
+      const isDashMetricas = route === 'dash-metricas';
       document.getElementById('view-overview').classList.toggle('is-active', isOverview);
       document.getElementById('view-n360-overview').classList.toggle('is-active', isN360Overview);
-      document.getElementById('view-spec').classList.toggle('is-active', !isOverview && !isN360Overview);
+      document.getElementById('view-dash-metricas').classList.toggle('is-active', isDashMetricas);
+      document.getElementById('view-spec').classList.toggle('is-active', !isOverview && !isN360Overview && !isDashMetricas);
       if (isOverview) {
         document.title = 'HealthCheck Apps · Documentação';
       } else if (isN360Overview) {
         document.title = 'Nutricao360 · Documentação';
+      } else if (isDashMetricas) {
+        document.title = 'dashboard · Cálculo das Métricas';
       } else {
         renderSpec(route);
       }
@@ -409,6 +483,7 @@ ${cofounderCss}
 
     // ---------- INIT ----------
     populateSidebar();
+    setupGroupCollapse();
     populateCards();
 
     // markdown render
@@ -416,9 +491,11 @@ ${cofounderCss}
       marked.setOptions({ gfm: true, breaks: false, headerIds: true });
       document.getElementById('overviewMd').innerHTML = marked.parse(data.overview);
       document.getElementById('n360OverviewMd').innerHTML = marked.parse(data.nutri360Overview);
+      document.getElementById('dashMetricasMd').innerHTML = marked.parse(data.dashMetricasOverview);
     } else {
       document.getElementById('overviewMd').textContent = data.overview;
       document.getElementById('n360OverviewMd').textContent = data.nutri360Overview;
+      document.getElementById('dashMetricasMd').textContent = data.dashMetricasOverview;
     }
 
     // delegated click for any [data-route]
